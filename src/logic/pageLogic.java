@@ -1,12 +1,18 @@
 package logic;
 
+import factories.messageFactory;
+import factories.ramUserFactory;
+import models.Message;
+
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static factories.jsonFactory.jsonInBytes;
 import static http.HttpBlanks.*;
 
 public enum pageLogic {
@@ -46,7 +52,8 @@ public enum pageLogic {
         this.fullPath.append(path);
         this.type = type;
     }
-    public ByteBuffer getContentInBytes() throws Exception {
+    public ByteBuffer getContentInBytes()
+            throws Exception {
         Path pagePath = Paths.get(this.fullPath.toString());
         String content = String.join("\n", Files.readAllLines(pagePath));
         String contentWithHttp;
@@ -62,8 +69,29 @@ public enum pageLogic {
         }
         return ByteBuffer.wrap(contentWithHttp.getBytes());
     }
-    public ByteBuffer postContentInBytes(){
-        //todo
-        return null;
+    public ByteBuffer postContentInBytes(HashMap<String,String> hm,String cookie,pageLogic p)
+            throws Exception {
+        ByteBuffer buffer = null;
+        switch (p){
+            case home:
+                messageFactory.putMes(hm.get("text"),cookie, LocalTime.now());
+                Message m  = messageFactory.getMes(hm.get("text"));
+                buffer = jsonInBytes(m.toJsonFormat(),cookie);
+                break;
+            case login:
+                boolean loginSuccessful = ramUserFactory.userLogin(hm.get("name"),hm.get("password"));
+                String logResponse = "{\"suc\":\""+loginSuccessful+"\"}";
+                buffer = jsonInBytes(logResponse,hm.get("name"));
+                break;
+            case register:
+                boolean registerSuccessful = ramUserFactory.regUser(hm.get("name"),hm.get("password"));
+                String regResponse = "{\"suc\":\""+registerSuccessful+"\"}";
+                buffer = jsonInBytes(regResponse,hm.get("name"));
+                break;
+            default:
+                break;
+        }
+
+        return buffer;
     }
 }

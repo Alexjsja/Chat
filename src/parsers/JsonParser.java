@@ -36,11 +36,9 @@ public class JsonParser {
             i++;
         }
         for (String kv : kv1) {
-            //todo
-            String k = kv.substring(0,kv.indexOf(':'));
-            String v = kv.substring(kv.indexOf(':')+1);
-            kv3.add(k.trim());
-            kv3.add(v.trim());
+            String[] k_v = kv.split(":",2);
+            kv3.add(k_v[0].trim());
+            kv3.add(k_v[1].trim());
         }
         return kv3.toArray(new String [0]);
     }

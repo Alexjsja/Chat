@@ -2,7 +2,7 @@ const host = window.location.host;
 const url = host+"/login";
 
 function login(result) {
-    let successful = result.loged
+    let successful = result.suc
     if (successful==='true'){
         window.location.href="/home"
     }else{

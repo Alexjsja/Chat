@@ -3,7 +3,7 @@ const host = window.location.host;
 const url = host+"/register";
 
 function register(result) {
-    let successful = result.reg
+    let successful = result.suc
     if (successful==='true'){
         window.location.href="/login"
     }else{

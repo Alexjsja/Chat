@@ -1,8 +1,10 @@
 package parsers;
 
+import database.dbConnector;
 import factories.ramUserFactory;
 import logic.pageLogic;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 
 public class HttpParser {
@@ -61,7 +63,8 @@ public class HttpParser {
     public static boolean methodIsGet(){
         return method.equals("GET");
     }
-    public static String getMapping(){
+
+    public static String getMapping() throws SQLException {
         mapping = firstLine.substring(firstLine.indexOf('/')+1,firstLine.indexOf('H')).replaceAll("\\s","");
         if (methodIsPost()) {
             mapping = mapping.substring(mapping.indexOf('/') + 1);
@@ -73,7 +76,7 @@ public class HttpParser {
                 mapping="register";
             }
         }
-        if(pageLogic.authPages.toString().contains(mapping)&&!ramUserFactory.containsUser(getCookieValue())){
+        if(pageLogic.authPages.toString().contains(mapping)&&!dbConnector.containsUser(getCookieValue())){
             mapping="register";
         }
         try {

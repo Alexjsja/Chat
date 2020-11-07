@@ -1,36 +1,38 @@
 package logic;
 
+import database.dbConnector;
 import factories.messageFactory;
 import factories.ramUserFactory;
 import parsers.HttpParser;
 import parsers.JsonParser;
-import models.Message;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.SelectionKey;
-import java.net.InetSocketAddress;
-import java.nio.channels.Selector;
-import java.nio.ByteBuffer;
-import java.time.LocalTime;
-import java.util.*;
-
-import static factories.jsonFactory.jsonInBytes;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class Server {
-    private static Selector SELECTOR;
-    private static ServerSocketChannel server;
-    private static final String ip = "10.1.0.64";
+    private static final String ip = "192.168.43.122";
     private static final int port = 2000;
+    private static final String DBurl = "jdbc:mysql://192.168.43.122:3307/dbserver?serverTimezone=UTC";
+    private static final  String logPass = "admin";
+
+    private static ServerSocketChannel server;
+    private static Selector SELECTOR;
 
     private static Map<SocketChannel,HashMap<String,String>> channelHeader;
     private static Map<SocketChannel,String> channelBody;
     private static Map<SocketChannel,String> authChanel;
-
-    private static ramUserFactory userFactory;
-    private static messageFactory mesFactory;
 
     public static void run() throws Exception {
         SELECTOR = Selector.open();
@@ -44,8 +46,10 @@ public class Server {
         channelBody = new ConcurrentHashMap<>();
         authChanel = new ConcurrentHashMap<>();
 
-        userFactory = ramUserFactory.startFactory();
-        mesFactory  = messageFactory.startFactory();
+
+        dbConnector.connect(DriverManager.getConnection(DBurl, logPass, logPass));
+        ramUserFactory.startFactory();
+        messageFactory.startFactory();
 
         while (true) {
             SELECTOR.select();
@@ -91,7 +95,7 @@ public class Server {
 
                     if(method.equals("POST"))
                         channelBody.put(userChannel, HttpParser.getBody());
-                    if (ramUserFactory.containsUser(cookieUser))
+                    if (dbConnector.containsUser(cookieUser))
                         authChanel.put(userChannel,cookieUser);
 
                     channelHeader.put(userChannel,hm);
@@ -100,8 +104,6 @@ public class Server {
                 }
                 if (key.isWritable()) {
                     SocketChannel userChannel = (SocketChannel) key.channel();
-
-
                     if (channelHeader.containsKey(userChannel)) {
                         HashMap<String,String> method_mapping = channelHeader.get(userChannel);
                         if (method_mapping.containsKey("GET")) {

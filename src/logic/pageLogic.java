@@ -1,5 +1,6 @@
 package logic;
 
+import database.dbConnector;
 import factories.messageFactory;
 import factories.ramUserFactory;
 import models.Message;
@@ -16,14 +17,14 @@ import static factories.jsonFactory.jsonInBytes;
 import static http.HttpBlanks.*;
 
 public enum pageLogic {
-    xhr("xhr.js","script",false),
+    xhrJS("xhr.js","script",false),
     home("home.html","page",true),
     page404("404.html","page",false),
     login("login.html","page",false),
     register("register.html","page",false),
-    homeScript("homeJS.js","script",true),
-    loginScript("loginJS.js","script",false),
-    registerScript("registerJS.js","script",false);
+    homeJS("homeJS.js","script",true),
+    loginJS("loginJS.js","script",false),
+    registerJS("registerJS.js","script",false);
 
     private StringBuilder fullPath;
     private String type;
@@ -69,24 +70,24 @@ public enum pageLogic {
         }
         return ByteBuffer.wrap(contentWithHttp.getBytes());
     }
-    public ByteBuffer postContentInBytes(HashMap<String,String> hm,String cookie,pageLogic p)
+    public ByteBuffer postContentInBytes(HashMap<String,String> reqJson,String cookie,pageLogic p)
             throws Exception {
         ByteBuffer buffer = null;
         switch (p){
             case home:
-                messageFactory.putMes(hm.get("text"),cookie, LocalTime.now());
-                Message m  = messageFactory.getMes(hm.get("text"));
+                messageFactory.putMes(reqJson.get("text"),cookie, LocalTime.now());
+                Message m  = messageFactory.getMes(reqJson.get("text"));
                 buffer = jsonInBytes(m.toJsonFormat(),cookie);
                 break;
             case login:
-                boolean loginSuccessful = ramUserFactory.userLogin(hm.get("name"),hm.get("password"));
+                boolean loginSuccessful = dbConnector.userLogin(reqJson.get("name"),reqJson.get("password"));
                 String logResponse = "{\"suc\":\""+loginSuccessful+"\"}";
-                buffer = jsonInBytes(logResponse,hm.get("name"));
+                buffer = jsonInBytes(logResponse,reqJson.get("name"));
                 break;
             case register:
-                boolean registerSuccessful = ramUserFactory.regUser(hm.get("name"),hm.get("password"));
+                boolean registerSuccessful = dbConnector.userRegister(reqJson.get("name"),reqJson.get("password"));
                 String regResponse = "{\"suc\":\""+registerSuccessful+"\"}";
-                buffer = jsonInBytes(regResponse,hm.get("name"));
+                buffer = jsonInBytes(regResponse,reqJson.get("name"));
                 break;
             default:
                 break;

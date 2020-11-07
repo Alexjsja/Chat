@@ -32,6 +32,10 @@ public class User implements Serializable {
         this.id = id;
         this.password = password;
     }
+    public User(String name, String password) {
+        this.name = name;
+        this.password = password;
+    }
     public String toString(){
         return "name:"+name+"\npassword:"+password+"\nID:"+id;
     }

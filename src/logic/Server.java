@@ -12,7 +12,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.HashMap;
 import java.util.Iterator;

@@ -2,7 +2,7 @@ package parsers;
 
 import database.dbConnector;
 import factories.ramUserFactory;
-import logic.pageLogic;
+import logic.sendibleContent;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -12,7 +12,6 @@ public class HttpParser {
     private static HashMap<String,String> httpLines;
     private static String[] allLines;
     private static String firstLine;
-    private static String mapping;
     private static String method;
 
 
@@ -65,24 +64,25 @@ public class HttpParser {
     }
 
     public static String getMapping() throws SQLException {
-        mapping = firstLine.substring(firstLine.indexOf('/')+1,firstLine.indexOf('H')).replaceAll("\\s","");
+        String mapping = firstLine.substring(firstLine.indexOf('/') + 1, firstLine.indexOf('H')).replaceAll("\\s", "");
+
+        boolean auth = dbConnector.containsUser(getCookieValue());
+
         if (methodIsPost()) {
             mapping = mapping.substring(mapping.indexOf('/') + 1);
         }
         if (mapping.length()==0){
-            if (ramUserFactory.containsUser(getCookieValue())){
-                mapping="home";
+            if (auth){
+                mapping ="home";
             }else {
-                mapping="register";
+                mapping ="register";
             }
         }
-        if(pageLogic.authPages.toString().contains(mapping)&&!dbConnector.containsUser(getCookieValue())){
-            mapping="register";
+        if(sendibleContent.authPages.toString().contains(mapping)&&!auth){
+            mapping ="register";
         }
-        try {
-            pageLogic.valueOf(mapping);
-        } catch (IllegalArgumentException e) {
-            mapping = "page404";
+        if(!sendibleContent.getAllMappings().contains(mapping)){
+            mapping = "404";
         }
         return mapping;
     }

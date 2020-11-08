@@ -107,13 +107,14 @@ public class Server {
                         HashMap<String,String> method_mapping = channelHeader.get(userChannel);
                         if (method_mapping.containsKey("GET")) {
 
-                            pageLogic content = pageLogic.valueOf(method_mapping.get("GET"));
-                            userChannel.write(content.getContentInBytes());
+                            String cookie = authChanel.get(userChannel);
+                            String mapping = method_mapping.get("GET");
+
+                            userChannel.write(sendibleContent.getContentInBytes(cookie,mapping));
 
                         }else if(method_mapping.containsKey("POST")){
                             HashMap<String,String> jsonPost = JsonParser.jsonHashMap(channelBody.get(userChannel));
 
-                            pageLogic page = pageLogic.valueOf(method_mapping.get("POST"));
                             userChannel.write(page.postContentInBytes(jsonPost,authChanel.get(userChannel),page));
 
                             channelBody.remove(userChannel);

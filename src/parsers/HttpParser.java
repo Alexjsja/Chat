@@ -78,12 +78,6 @@ public class HttpParser {
                 mapping ="register";
             }
         }
-        if(sendibleContent.authPages.toString().contains(mapping)&&!auth){
-            mapping ="register";
-        }
-        if(!sendibleContent.getAllMappings().contains(mapping)){
-            mapping = "404";
-        }
         return mapping;
     }
     public static String getCookieValue() {

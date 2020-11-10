@@ -1,35 +1,50 @@
 package parsers;
 
 import database.dbConnector;
-import factories.ramUserFactory;
-import logic.sendibleContent;
 
 import java.sql.SQLException;
 import java.util.HashMap;
 
 public class HttpParser {
 
-    private static HashMap<String,String> httpLines;
+    private static HashMap<String,String> httpMap;
+    private static HashMap<String,String> cookiesMap;
     private static String[] allLines;
     private static String firstLine;
     private static String method;
 
 
     public static void parseHttp(String httpRequest){
-        httpLines = httpHashMap(httpRequest);
+        cookiesMap = new HashMap<>();
+        httpMap = httpHashMap(httpRequest);
         firstLine = getLines(httpRequest)[0];
         allLines = getLines(httpRequest);
+    }
+
+    public static HashMap<String,String> parseCookie(String str){
+        String[] cookies = str.split(";");
+        HashMap<String,String> cookieKeyValueMap = new HashMap<>();
+        for (int i = 0; i < cookies.length; i++) {
+            String[] cookieKeyValue = cookies[i].trim().split("=",2);
+            if (cookieKeyValue[1].length()==0)continue;
+            cookieKeyValueMap.put(cookieKeyValue[0].trim(),cookieKeyValue[1].trim());
+        }
+        return cookieKeyValueMap;
     }
 
     private static HashMap<String,String> httpHashMap(String httpRequest){
         String[] lines = getLines(httpRequest);
         HashMap<String,String> hm = new HashMap<>();
-        for (int i =1 ;i<lines.length;i++){
+        for (int i = 1 ;i<lines.length;i++){
             if(lines[i].equals("\r")||lines[i].length()==0){
                 break;
             }
-            String[] kv = lines[i].split(":",2);
-            hm.put(kv[0].trim(),kv[1].trim());
+            String[] httpKeyValue = lines[i].split(":",2);
+            if(httpKeyValue[0].equals("Cookie")){
+                cookiesMap.putAll(parseCookie(httpKeyValue[1].trim()));
+            }else{
+                hm.put(httpKeyValue[0].trim(),httpKeyValue[1].trim());
+            }
         }
         return hm;
     }
@@ -62,15 +77,16 @@ public class HttpParser {
     public static boolean methodIsGet(){
         return method.equals("GET");
     }
+    public static HashMap<String,String> getCookiesMap(){
+        return cookiesMap;
+    }
+
 
     public static String getMapping() throws SQLException {
         String mapping = firstLine.substring(firstLine.indexOf('/') + 1, firstLine.indexOf('H')).replaceAll("\\s", "");
 
-        boolean auth = dbConnector.containsUser(getCookieValue());
+        boolean auth = dbConnector.containsUser(cookiesMap.get("session"));
 
-        if (methodIsPost()) {
-            mapping = mapping.substring(mapping.indexOf('/') + 1);
-        }
         if (mapping.length()==0){
             if (auth){
                 mapping ="home";
@@ -79,12 +95,5 @@ public class HttpParser {
             }
         }
         return mapping;
-    }
-    public static String getCookieValue() {
-        String fullCookie = httpLines.get("Cookie");
-        if (fullCookie != null) {
-            return fullCookie.substring(fullCookie.indexOf('=')+1);
-        }
-        return "o";
     }
 }

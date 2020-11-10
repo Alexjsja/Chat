@@ -1,15 +1,12 @@
 package logic;
 
 import database.dbConnector;
-import factories.messageFactory;
 import http.httpHeader;
-import models.Message;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Optional;
@@ -17,29 +14,53 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public enum sendibleContent {
+    /*<---------------------------------DEFAULT RETURNS---------------------------->*/
     xhrJS("xhr.js","script",false,"xhr.js"),
-    home("home.html","page",true,"home"),
-    page404("404.html","page",false,"404"),
+    homeJS("home.js","script",false,"home.js"),
+    loginJS("login.js","script",false,"login.js"),
+    registerJS("register.js","script",false,"register.js"),
+    /*<--------------------------------MODIFIED RETURNS---------------------------->*/
     login("login.html","page",false,"login"),
     register("register.html","page",false,"register"),
-    homeJS("home.js","script",true,"home.js"),
-    loginJS("login.js","script",false,"login.js"),
-    registerJS("register.js","script",false,"register.js");
+    home("home.html","page",false,"home"){
+        public ByteBuffer getContentInBytes(HashMap<String, String> cookiesMap) throws Exception {
+            if(cookiesMap.containsKey("last_time")){
+                String response = httpHeader.startBuild(204)
+                        .removeCookie("last_time")
+                        .setServer()
+                        .build();
+                return ByteBuffer.wrap(response.getBytes());
+            }else {
+                return super.getContentInBytes(cookiesMap);
+            }
+        }
+    },
+    page404("404.html","page",false,"404"){
+        public ByteBuffer getContentInBytes(String cookie) throws Exception {
+            Path contentPath = Paths.get(super.fullPath);
+            String contentValue = String.join("\n", Files.readAllLines(contentPath));
+            String header = httpHeader
+                    .startBuild(404)
+                    .setResponseLength(contentValue.getBytes().length)
+                    .setResponseType(httpHeader.HTML).build();
+
+            String fullResponse = header + contentValue;
+            return ByteBuffer.wrap(fullResponse.getBytes());
+        }
+    };
 
     private final String fullPath;
     private final String type;
     private final boolean forAuth;
     private final String mapping;
-
-    public static Set<String> authPages = filterMappingsForAuth(true);
-    public static Set<String> notAuthPages = filterMappingsForAuth(false);
-
+    public static final Set<String> authMappings = filterMappingsForAuth(true);
+    public static final Set<String> notAuthMappings = filterMappingsForAuth(false);
 
     public static Set<String> filterMappingsForAuth(boolean auth){
         return Arrays.stream(sendibleContent.values()).filter(sendibleContent -> sendibleContent.forAuth==auth).map(el->el.mapping).collect(Collectors.toSet());
     }
 
-    private static sendibleContent getContentOfMapping(String mapping){
+    public static sendibleContent getContentOfMapping(String mapping){
         Optional<sendibleContent> anyContent = Arrays.stream(sendibleContent.values()).filter(sendibleContent -> sendibleContent.mapping.equals(mapping)).findFirst();
         return anyContent.orElse(page404);
     }
@@ -63,57 +84,51 @@ public enum sendibleContent {
         this.type = type;
     }
 
-    public static ByteBuffer getContentInBytes(String cookie,String mapping) throws Exception {
-        sendibleContent content = getContentOfMapping(mapping);
-        boolean auth = dbConnector.containsUser(cookie);
-        Path contentPath = Paths.get(content.fullPath);
-        String contentValue = String.join("\n", Files.readAllLines(contentPath));
-        String responseWithHttp =null;
 
-        if(content.type.equals("page")){
-            if(!auth&&authPages.contains(content.mapping)){
-                responseWithHttp = httpHeader
+    public ByteBuffer getContentInBytes(HashMap<String,String> cookiesMap) throws Exception {
+        //todo map cookies
+        boolean authentic;
+        if (cookiesMap.containsKey("session")){
+            authentic = dbConnector.containsUser(cookiesMap.get("session"));
+        }else {
+            authentic = false;
+        }
+        Path contentPath = Paths.get(this.fullPath);
+        String contentValue = String.join("\n", Files.readAllLines(contentPath));
+        String fullResponse =null;
+
+        if(this.type.equals("page")){
+            if(!authentic&&authMappings.contains(this.mapping)){
+                fullResponse = httpHeader
                         .startBuild(301)
                         .setRedirect("/register")
                         .build();
-            }else if(content==page404){
-                responseWithHttp = httpHeader
-                        .startBuild(404)
-                        .setResponseType(httpHeader.HTML)
-                        .setResponseLength(contentValue.getBytes().length)
-                        .build();
-                responseWithHttp += contentValue;
             } else {
-                switch (content.mapping){
-                    //todo: dynamic pages
-                }
-                responseWithHttp = httpHeader
+                fullResponse = httpHeader
                         .startBuild(200)
                         .setResponseLength(contentValue.getBytes().length)
                         .setResponseType(httpHeader.HTML)
                         .setConnection()
                         .setServer()
                         .build();
-                responseWithHttp += contentValue;
+                fullResponse += contentValue;
             }
-        }else if(content.type.equals("script")){
-            responseWithHttp = httpHeader
+        }else if(this.type.equals("script")){
+            fullResponse = httpHeader
                     .startBuild(200)
                     .setResponseLength(contentValue.getBytes().length)
                     .setResponseType(httpHeader.JS)
                     .setConnection()
                     .setServer()
                     .build();
-            responseWithHttp+=contentValue;
+            fullResponse+=contentValue;
         }
-
-
-        assert (responseWithHttp != null);
-        return ByteBuffer.wrap(responseWithHttp.getBytes());
+        assert (fullResponse != null);
+        return ByteBuffer.wrap(fullResponse.getBytes());
     }
 
-
-    public static ByteBuffer postContentInBytes(HashMap<String,String> requestJson,String cookie,String mapping) throws Exception {
+    //todo switch to logic
+    public ByteBuffer postContentInBytes(HashMap<String,String> requestJson,String cookie,String mapping) throws Exception {
         ByteBuffer buffer = null;
        /* sendibleContent content = getContentOfMapping(mapping);
         switch (content){

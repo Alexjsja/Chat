@@ -1,8 +1,6 @@
 package logic;
 
 import database.dbConnector;
-import factories.messageFactory;
-import factories.ramUserFactory;
 import parsers.HttpParser;
 import parsers.JsonParser;
 
@@ -22,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
     private static final String ip = "192.168.43.122";
-    private static final int port = 2000;
+    private static final int port = 8080;
     private static final String DBurl = "jdbc:mysql://192.168.43.122:3307/dbserver?serverTimezone=UTC";
     private static final  String logPass = "admin";
 
@@ -31,7 +29,7 @@ public class Server {
 
     private static Map<SocketChannel,HashMap<String,String>> channelHeader;
     private static Map<SocketChannel,String> channelBody;
-    private static Map<SocketChannel,String> authChanel;
+    private static Map<SocketChannel,HashMap<String,String>> channelCookies;
 
     public static void run() throws Exception {
         SELECTOR = Selector.open();
@@ -43,12 +41,9 @@ public class Server {
 
         channelHeader = new ConcurrentHashMap<>();
         channelBody = new ConcurrentHashMap<>();
-        authChanel = new ConcurrentHashMap<>();
-
+        channelCookies = new ConcurrentHashMap<>();
 
         dbConnector.connect(DriverManager.getConnection(DBurl, logPass, logPass));
-        ramUserFactory.startFactory();
-        messageFactory.startFactory();
 
         while (true) {
             SELECTOR.select();
@@ -66,6 +61,7 @@ public class Server {
                     user.configureBlocking(false);
                     user.register(SELECTOR, SelectionKey.OP_READ);
                 }
+                if(!key.isValid())continue;
 
                 if (key.isReadable()) {
                     SocketChannel userChannel = (SocketChannel) key.channel();
@@ -90,13 +86,11 @@ public class Server {
                     HashMap<String,String> hm = new HashMap<>();
                     hm.put(method,mapping);
 
-                    String cookieUser = HttpParser.getCookieValue();
-
                     if(method.equals("POST"))
                         channelBody.put(userChannel, HttpParser.getBody());
-                    if (dbConnector.containsUser(cookieUser))
-                        authChanel.put(userChannel,cookieUser);
 
+
+                    channelCookies.put(userChannel,HttpParser.getCookiesMap());
                     channelHeader.put(userChannel,hm);
 
                     userChannel.register(SELECTOR,SelectionKey.OP_WRITE);
@@ -106,25 +100,29 @@ public class Server {
                     if (channelHeader.containsKey(userChannel)) {
 
                         HashMap<String,String> method_mapping = channelHeader.get(userChannel);
-                        String cookie = authChanel.get(userChannel);
+                        HashMap<String, String> cookiesMap = channelCookies.get(userChannel);
 
                         if (method_mapping.containsKey("GET")) {
 
                             String mapping = method_mapping.get("GET");
 
-                            userChannel.write(sendibleContent.getContentInBytes(cookie,mapping));
+                            sendibleContent someContent = sendibleContent.getContentOfMapping(mapping);
+
+                            ByteBuffer outBuffer = someContent.getContentInBytes(cookiesMap);
+
+                            userChannel.write(outBuffer);
 
                         }else if(method_mapping.containsKey("POST")){
                             HashMap<String,String> jsonPost = JsonParser.jsonHashMap(channelBody.get(userChannel));
                             String mapping = method_mapping.get("POST");
+                            //todo
+//                            userChannel.write(sendibleContent.postContentInBytes(jsonPost,cookie,mapping));
 
-                            userChannel.write(sendibleContent.postContentInBytes(jsonPost,cookie,mapping));
-
-                            channelBody.remove(userChannel);
-                            authChanel.remove(userChannel);
                         }
-                        channelHeader.remove(userChannel);
                     }
+                    channelBody.remove(userChannel);
+                    channelCookies.remove(userChannel);
+                    channelHeader.remove(userChannel);
                     userChannel.register(SELECTOR, SelectionKey.OP_READ);
                 }
             }

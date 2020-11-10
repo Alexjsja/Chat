@@ -18,15 +18,22 @@ public class httpHeader {
     public class httpBuilder{
         private httpBuilder(int httpCode){
             header = new StringBuilder();
+            header.append("HTTP/1.1 ");
             switch (httpCode){
+                case 204:
+                    header.append("204 No Content\n");
+                    break;
+                case 100:
+                    header.append("100 Continue\n");
+                    break;
                 case 200:
-                    header.append("HTTP/1.1 200 OK\n");
+                    header.append("200 OK\n");
                     break;
                 case 301:
-                    header.append("HTTP/1.1 301 Moved Permanently\n");
+                    header.append("301 Moved Permanently\n");
                     break;
                 case 404:
-                    header.append("HTTP/1.1 404 Not Found\n");
+                    header.append("404 Not Found\n");
                     break;
             }
         }
@@ -48,12 +55,12 @@ public class httpHeader {
             return this;
         }
 
-        public httpBuilder setCookie(String cookie){
-            header.append(String.format("Set-Cookie:session=%s;Path=/;Max-Age=600;httponly\n",cookie));
+        public httpBuilder setCookie(String cookieKey,String cookieValue){
+            header.append(String.format("Set-Cookie:%s=%s;Path=/;Max-Age=600;httponly\n",cookieKey,cookieValue));
             return this;
         }
-        public httpBuilder removeCookie(){
-            header.append("Set-Cookie: session=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT \n");
+        public httpBuilder removeCookie(String cookieKey){
+            header.append(String.format("Set-Cookie: %s=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT \n",cookieKey));
             return this;
         }
         public httpBuilder setServer(){

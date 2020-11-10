@@ -1,6 +1,6 @@
 
 const host = window.location.host;
-const url = host+"/home";
+const url = "/home";
 
 
 function responseToHTML(response) {
@@ -22,3 +22,8 @@ function send(){
         alert("Письмо пустое!")
     }
 }
+function r(){
+    fetch(url).then(resp => resp.status).then(resp => console.log(resp))
+    document.cookie="last_time=TEST; path=/; max-age=1"
+}
+    setInterval(r,1000)

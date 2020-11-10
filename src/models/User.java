@@ -36,7 +36,12 @@ public class User implements Serializable {
         this.name = name;
         this.password = password;
     }
-    public String toString(){
-        return "name:"+name+"\npassword:"+password+"\nID:"+id;
+    public String toJsonFormat(){
+        return "{\"id\":"+id+",\"name\":\""+name+"\"}";
+    }
+
+    @Override
+    public String toString() {
+        return super.toString();
     }
 }

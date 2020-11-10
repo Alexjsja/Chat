@@ -1,5 +1,5 @@
 const host = window.location.host;
-const url = host+"/login";
+const url = "/login";
 
 function login(result) {
     let successful = result.suc

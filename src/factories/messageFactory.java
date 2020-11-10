@@ -16,8 +16,8 @@ public class messageFactory {
     }
 
     public static void putMes(String text, String author, LocalTime time){
-        Message message = new Message(text,author,time);
-        messages.put(text,message);
+//        Message message = new Message(text,author,time);
+//        messages.put(text,message);
     }
     public static ArrayList<Message> getMessagesAfterLast(LocalTime lastTime){
 

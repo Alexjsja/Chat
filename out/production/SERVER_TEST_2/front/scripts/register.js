@@ -1,6 +1,5 @@
-
 const host = window.location.host;
-const url = host+"/register";
+const url = "/register";
 
 function register(result) {
     let successful = result.suc
@@ -23,6 +22,7 @@ function send(){
         pass.value=""
 
         exchanger("POST",url,readable)
+            .then(response => response.json())
             .then(result => register(result))
             .catch(err => alert(err));
     }else{

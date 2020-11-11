@@ -6,7 +6,7 @@ public class Message {
     private String text;
     private String author;
     private String receiver;
-    private LocalTime sendTime;
+    private String sendTime;
 
     public String getText() {
         return text;
@@ -20,11 +20,11 @@ public class Message {
         return author;
     }
 
-    public LocalTime getSendTime() {
+    public String getSendTime() {
         return sendTime;
     }
 
-    public void setSendTime(LocalTime sendTime) {
+    public void setSendTime(String sendTime) {
         this.sendTime = sendTime;
     }
 
@@ -41,11 +41,10 @@ public class Message {
     }
 
     public String toJsonFormat(){
-        return "{\"author\":\""+author+",\"receiver\":\""+receiver+"\",\"text\":\""+text+"\",\"sendTime\":\""+sendTime+"\"}";
+        return "{\"author\":\""+author+"\",\"text\":\""+text+"\",\"sendTime\":\""+sendTime+"\"}";
     }
 
-    public Message(String text, String author, LocalTime sendTime, String receiver) {
-        this.receiver=receiver;
+    public Message(String text, String author, String sendTime) {
         this.text = text;
         this.author = author;
         this.sendTime = sendTime;

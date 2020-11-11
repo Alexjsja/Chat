@@ -1,13 +1,13 @@
 package database;
 
-import models.User;
+import models.Message;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 //fixme
+
 public class dbConnector {
 
     private static Connection connection;
@@ -18,56 +18,75 @@ public class dbConnector {
     }
 
     public static boolean userLogin(String name,String password) throws SQLException {
-        boolean success=false;
-
-        String request = String.format("select * from users where name='%s'and password='%s'",name,password);
-
-        if (userReturned(send(request))) {
-            success = true;
-        }
-
-        return success;
+        CallableStatement callableStatement = connection.prepareCall("{call userLogin(?,?,?)}");
+        callableStatement.setString(1,name);
+        callableStatement.setString(2,password);
+        callableStatement.registerOutParameter(3,Types.TINYINT);
+        callableStatement.execute();
+        return callableStatement.getBoolean(3);
     }
     public static boolean userRegister(String name,String password) throws SQLException {
-        boolean success=false;
-        if(!containsUser(name)){
+        if (!containsUser(name)){
+            PreparedStatement preparedStatement = connection.prepareStatement(
+                    "insert into users(name,password,cookie) values (?,?,?)");
 
-            String request = String.format("insert into users(name,password) values('%s','%s')",name,password);
-
-            PreparedStatement statement = connection.prepareStatement(request);
-
-            statement.execute();
-
-            success = true;
+            preparedStatement.setString(1,name);
+            preparedStatement.setString(2,password);
+            String cookie = name+password;
+            String cookieHash = Integer.toString( cookie.hashCode());
+            preparedStatement.setString(3,cookieHash);
+            preparedStatement.execute();
+            return true;
+        }else {
+            return false;
         }
-        return success;
     }
     public static boolean containsUser(String name) throws SQLException {
-        boolean success=false;
-
-        String request = String.format("select * from users where name='%s'",name);
-
-        if (userReturned(send(request))) {
-            success = true;
-        }
-
-        return success;
+        CallableStatement callableStatement = connection.prepareCall("call containsUser(?,?)");
+        callableStatement.setString(1,name);
+        callableStatement.registerOutParameter(2,Types.TINYINT);
+        callableStatement.execute();
+        return callableStatement.getBoolean(2);
     }
 
-    private static boolean userReturned(ResultSet response) throws SQLException {
-        User user = null;
-        while (response.next()) {
-            String nm = response.getString("name");
-            String ps = response.getString("password");
-            user = new User(nm, ps);
-        }
-        return user==null?false:true;
+    public static boolean containsCookieSession(String session) throws SQLException {
+        CallableStatement callableStatement = connection.prepareCall("call containsCookie(?,?)");
+        callableStatement.setString(1,session);
+        callableStatement.registerOutParameter(2,Types.TINYINT);
+        callableStatement.execute();
+        return callableStatement.getBoolean(2);
     }
-    private static ResultSet send(String str) throws SQLException {
-        PreparedStatement statement = connection.prepareStatement(str);
 
-        statement.execute();
+    public static void putMessage(String author,String text) throws SQLException {
+        PreparedStatement preparedStatement = connection.prepareStatement(
+                "insert into messages(author,text,sendtime) values (?,?,now())");
 
-        return statement.executeQuery();
+        preparedStatement.setString(1,author);
+        preparedStatement.setString(2,text);
+        preparedStatement.execute();
+    }
+
+    public static boolean containsNewMessages(String lastTime) throws SQLException {
+        CallableStatement callableStatement = connection.prepareCall("call containsNewMessages(?,?)");
+        callableStatement.setString(1,lastTime);
+        callableStatement.registerOutParameter(2,Types.TINYINT);
+        callableStatement.execute();
+        return callableStatement.getBoolean(2);
+    }
+    public static Message[] getNewMessages(String lastTime) throws SQLException {
+        CallableStatement callableStatement = connection.prepareCall("call get50lastMesgHomeChat(?,?,?,?)");
+        callableStatement.setString(1,lastTime);
+        callableStatement.registerOutParameter(2,Types.VARCHAR);
+        callableStatement.registerOutParameter(3,Types.VARCHAR);
+        callableStatement.registerOutParameter(4,Types.TIME);
+        ResultSet newMessages = callableStatement.executeQuery();
+        List<Message> messageList = new ArrayList<>();
+        while (newMessages.next()){
+            String text = newMessages.getString(1);
+            String author = newMessages.getString(2);
+            String sendTime = newMessages.getTimestamp(3).toString();
+            messageList.add(new Message(text,author,sendTime));
+        }
+        return messageList.toArray(new Message[0]);
     }
 }

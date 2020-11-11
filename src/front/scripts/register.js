@@ -1,9 +1,9 @@
-const host = window.location.host;
 const url = "/register";
 
 function register(result) {
     let successful = result.suc
-    if (successful==='true'){
+    console.log(successful)
+    if (successful===true){
         window.location.href="/login"
     }else{
         alert("Такой человек уже зарегистрирован")
@@ -18,10 +18,7 @@ function send(){
             name:name,
             password:pass
         };
-        name.value=""
-        pass.value=""
-
-        exchanger("POST",url,readable)
+               exchanger("POST",url,readable)
             .then(response => response.json())
             .then(result => register(result))
             .catch(err => alert(err));

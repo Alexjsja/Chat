@@ -19,9 +19,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 public class Server {
-    private static final String ip = "192.168.43.122";
-    private static final int port = 8080;
-    private static final String DBurl = "jdbc:mysql://192.168.43.122:3307/dbserver?serverTimezone=UTC";
+    private static final String ip = "10.1.0.64";
+    private static final int port = 2000;
+    private static final String DBurl = "jdbc:mysql://localhost:3306/serverdatabase?serverTimezone=UTC";
     private static final  String logPass = "admin";
 
     private static ServerSocketChannel server;
@@ -115,8 +115,12 @@ public class Server {
                         }else if(method_mapping.containsKey("POST")){
                             HashMap<String,String> jsonPost = JsonParser.jsonHashMap(channelBody.get(userChannel));
                             String mapping = method_mapping.get("POST");
-                            //todo
-//                            userChannel.write(sendibleContent.postContentInBytes(jsonPost,cookie,mapping));
+
+                            sendibleContent someContent = sendibleContent.getContentOfMapping(mapping);
+
+                            ByteBuffer outBuffer = someContent.postContentInBytes(jsonPost,cookiesMap,mapping);
+
+                            userChannel.write(outBuffer);
 
                         }
                     }

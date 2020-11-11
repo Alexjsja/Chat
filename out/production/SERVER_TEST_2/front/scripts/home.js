@@ -1,29 +1,45 @@
-
-const host = window.location.host;
 const url = "/home";
+let date = new Date();
+let sql_date ='2020-11-11 15:55:05'
+// date.toISOString().slice(0, 19).replace('T', ' ');
 
-
-function responseToHTML(response) {
+async function responseToHTML(response) {
     let div = document.getElementById("_response_");
-    let text = document.createElement("div");
-    text.innerText = response.text + '(' + response.author + ') '+response.sendTime;
-    div.appendChild(text);
-}
+    if (response.length > 1){
+        sql_date = response[response.length-1].sendTime
+    }
+    for (let i = 0; i < response.length; i++) {
+        let text = document.createElement("div");
+        text.className='msg'
+        text.innerText = response[i].text + '(' + response[i].author + ') '+response[i].sendTime;
+        div.appendChild(text);
+    }
 
+
+}
+function logout(){
+    document.cookie="logout=1; path=/; max-age=1"
+    fetch("home").then(r=>location.href="/register")
+}
 function send(){
     let receiveText = document.getElementById("readable");
     if(receiveText.value.length>0){
         let readable = {text:receiveText.value};
-        exchanger("POST",url,readable)
-            .then(response => responseToHTML(response))
-            .catch(err => alert(err));
+        fetch(url,{
+            method:"POST",
+            body:JSON.stringify(readable)
+        })
         receiveText.value="";
     }else{
         alert("Письмо пустое!")
     }
 }
-function r(){
-    fetch(url).then(resp => resp.status).then(resp => console.log(resp))
-    document.cookie="last_time=TEST; path=/; max-age=1"
+function repeat(){
+    document.cookie="last_time="+sql_date+"; path=/; max-age=1"
+    fetch(url).then(resp =>{
+        if (resp.status===200){
+           return resp.json()
+        }
+    }).then(resp => responseToHTML(resp))
 }
-    setInterval(r,1000)
+setInterval(repeat,1000)

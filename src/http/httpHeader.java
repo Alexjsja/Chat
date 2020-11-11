@@ -6,7 +6,6 @@ public class httpHeader {
     public static final String JSON = "application/json";
     public static final String CSS = "text/css";
 
-
     private StringBuilder header;
 
     private httpHeader(){}
@@ -16,7 +15,7 @@ public class httpHeader {
     }
 
     public class httpBuilder{
-        private httpBuilder(int httpCode){
+        public httpBuilder(int httpCode){
             header = new StringBuilder();
             header.append("HTTP/1.1 ");
             switch (httpCode){
@@ -29,8 +28,8 @@ public class httpHeader {
                 case 200:
                     header.append("200 OK\n");
                     break;
-                case 301:
-                    header.append("301 Moved Permanently\n");
+                case 307:
+                    header.append("307 Temporary Redirect\n");
                     break;
                 case 404:
                     header.append("404 Not Found\n");

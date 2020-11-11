@@ -16,34 +16,49 @@ import java.util.stream.Collectors;
 public enum sendibleContent {
     /*<---------------------------------DEFAULT RETURNS---------------------------->*/
     xhrJS("xhr.js","script",false,"xhr.js"),
-    homeJS("home.js","script",false,"home.js"),
+    homeJS("home.js","script",true,"home.js"),
     loginJS("login.js","script",false,"login.js"),
     registerJS("register.js","script",false,"register.js"),
     /*<--------------------------------MODIFIED RETURNS---------------------------->*/
-    login("login.html","page",false,"login"),
-    register("register.html","page",false,"register"),
-    home("home.html","page",false,"home"){
+    login("login.html","page",false,"login"){
+        @Override
+        public ByteBuffer postContentInBytes(HashMap<String, String> requestJson, HashMap<String, String> cookiesMap, String mapping) throws Exception {
+            return loginAndRegisterLogic.loginAndRegisterPostResponse(requestJson,cookiesMap,mapping);
+        }
+    },
+    register("register.html","page",false,"register"){
+        @Override
+        public ByteBuffer postContentInBytes(HashMap<String, String> requestJson, HashMap<String, String> cookiesMap, String mapping) throws Exception {
+            return loginAndRegisterLogic.loginAndRegisterPostResponse(requestJson,cookiesMap,mapping);
+        }
+    },
+    home("home.html","page",true,"home"){
+        @Override
         public ByteBuffer getContentInBytes(HashMap<String, String> cookiesMap) throws Exception {
+
             if(cookiesMap.containsKey("last_time")){
-                String response = httpHeader.startBuild(204)
-                        .removeCookie("last_time")
-                        .setServer()
-                        .build();
-                return ByteBuffer.wrap(response.getBytes());
+                return homePageLogic.getNewMessages(cookiesMap);
+            }else if (cookiesMap.containsKey("logout")){
+                return homePageLogic.homeLogout(cookiesMap);
             }else {
                 return super.getContentInBytes(cookiesMap);
             }
         }
+
+        @Override
+        public ByteBuffer postContentInBytes(HashMap<String, String> requestJson, HashMap<String, String> cookiesMap, String mapping) throws Exception {
+            return homePageLogic.homePostResponse(requestJson,cookiesMap,mapping);
+        }
     },
     page404("404.html","page",false,"404"){
-        public ByteBuffer getContentInBytes(String cookie) throws Exception {
+        @Override
+        public ByteBuffer getContentInBytes(HashMap<String, String> cookiesMap) throws Exception {
             Path contentPath = Paths.get(super.fullPath);
             String contentValue = String.join("\n", Files.readAllLines(contentPath));
             String header = httpHeader
                     .startBuild(404)
                     .setResponseLength(contentValue.getBytes().length)
                     .setResponseType(httpHeader.HTML).build();
-
             String fullResponse = header + contentValue;
             return ByteBuffer.wrap(fullResponse.getBytes());
         }
@@ -86,10 +101,9 @@ public enum sendibleContent {
 
 
     public ByteBuffer getContentInBytes(HashMap<String,String> cookiesMap) throws Exception {
-        //todo map cookies
         boolean authentic;
         if (cookiesMap.containsKey("session")){
-            authentic = dbConnector.containsUser(cookiesMap.get("session"));
+            authentic = dbConnector.containsCookieSession(cookiesMap.get("session"));
         }else {
             authentic = false;
         }
@@ -100,7 +114,7 @@ public enum sendibleContent {
         if(this.type.equals("page")){
             if(!authentic&&authMappings.contains(this.mapping)){
                 fullResponse = httpHeader
-                        .startBuild(301)
+                        .startBuild(307)
                         .setRedirect("/register")
                         .build();
             } else {
@@ -127,31 +141,9 @@ public enum sendibleContent {
         return ByteBuffer.wrap(fullResponse.getBytes());
     }
 
-    //todo switch to logic
-    public ByteBuffer postContentInBytes(HashMap<String,String> requestJson,String cookie,String mapping) throws Exception {
-        ByteBuffer buffer = null;
-       /* sendibleContent content = getContentOfMapping(mapping);
-        switch (content){
-            case home:
-                messageFactory.putMes(requestJson.get("text"),cookie, LocalTime.now());
-                Message m  = messageFactory.getMes(requestJson.get("text"));
-                buffer = jsonInBytes(m.toJsonFormat(),cookie);
-                break;
-            case login:
-                boolean loginSuccessful = dbConnector.userLogin(requestJson.get("name"),requestJson.get("password"));
-                String logResponse = "{\"suc\":\""+loginSuccessful+"\"}";
-                buffer = jsonInBytes(logResponse,requestJson.get("name"));
-                break;
-            case register:
-                boolean registerSuccessful = dbConnector.userRegister(requestJson.get("name"),requestJson.get("password"));
-                String regResponse = "{\"suc\":\""+registerSuccessful+"\"}";
-                buffer = jsonInBytes(regResponse,requestJson.get("name"));
-                break;
-            default:
-                break;
-        }*/
-
-        return buffer;
+    /*<-----------------DEFAULT METHOD FOR OVERRIDING--------------------------------------------->*/
+    public ByteBuffer postContentInBytes(HashMap<String,String> requestJson,HashMap<String,String> cookiesMap,String mapping)
+            throws Exception {
+        return null;
     }
-
 }

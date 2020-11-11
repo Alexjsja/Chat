@@ -85,8 +85,7 @@ public class HttpParser {
     public static String getMapping() throws SQLException {
         String mapping = firstLine.substring(firstLine.indexOf('/') + 1, firstLine.indexOf('H')).replaceAll("\\s", "");
 
-        boolean auth = dbConnector.containsUser(cookiesMap.get("session"));
-
+        boolean auth = dbConnector.containsCookieSession(cookiesMap.get("session"));
         if (mapping.length()==0){
             if (auth){
                 mapping ="home";

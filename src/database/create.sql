@@ -67,3 +67,8 @@ begin
     order by sendtime desc limit 50;
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
+create
+    definer = admin@`%` procedure containsCookie(IN cookie1 varchar(200), OUT success tinyint(1))
+begin
+    set success = exists(select * from users where cookie=cookie1);
+end;

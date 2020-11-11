@@ -3,7 +3,8 @@ const url = "/login";
 
 function login(result) {
     let successful = result.suc
-    if (successful==='true'){
+    console.log(result)
+    if (successful===true){
         window.location.href="/home"
     }else{
         alert("Логин и/или пароль не верные")
@@ -22,7 +23,8 @@ function send(){
         pass.value=""
 
         exchanger("POST",url,readable)
-            .then(result => login(result))
+            .then(response => response.json())
+            .then(response => login(response))
             .catch(err => alert(err));
     }else{
         alert("Логин или пароль пуст")

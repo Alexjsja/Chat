@@ -25,9 +25,9 @@ function send(){
     let receiveText = document.getElementById("readable");
     if(receiveText.value.length>0){
         let readable = {text:receiveText.value};
-        fetch(url,{
-            method:"POST",
-            body:JSON.stringify(readable)
+        fetch(url, {
+            method: "POST",
+            body: JSON.stringify(readable)
         })
         receiveText.value="";
     }else{

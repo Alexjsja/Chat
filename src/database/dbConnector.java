@@ -1,12 +1,12 @@
 package database;
 
+import com.mysql.cj.xdevapi.JsonParser;
 import models.Message;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-//fixme
 
 public class dbConnector {
 
@@ -57,6 +57,8 @@ public class dbConnector {
         return callableStatement.getBoolean(2);
     }
 
+
+    //fixme
     public static void putMessage(String author,String text) throws SQLException {
         PreparedStatement preparedStatement = connection.prepareStatement(
                 "insert into messages(author,text,sendtime) values (?,?,now())");
@@ -65,6 +67,7 @@ public class dbConnector {
         preparedStatement.setString(2,text);
         preparedStatement.execute();
     }
+
 
     public static boolean containsNewMessages(String lastTime) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call containsNewMessages(?,?)");
@@ -78,7 +81,9 @@ public class dbConnector {
         callableStatement.setString(1,lastTime);
         callableStatement.registerOutParameter(2,Types.VARCHAR);
         callableStatement.registerOutParameter(3,Types.VARCHAR);
-        callableStatement.registerOutParameter(4,Types.TIME);
+//        fixme
+        callableStatement.registerOutParameter(4,Types.VARCHAR);
+//        fixme
         ResultSet newMessages = callableStatement.executeQuery();
         List<Message> messageList = new ArrayList<>();
         while (newMessages.next()){

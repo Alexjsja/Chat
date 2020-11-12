@@ -1,64 +1,67 @@
 package logic;
 
 import database.dbConnector;
-import http.httpHeader;
+import http.httpBuilder;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static http.httpBuilder.HTML;
+import static http.httpBuilder.JS;
+
+
 public enum sendibleContent {
+
     /*<---------------------------------DEFAULT RETURNS---------------------------->*/
-    xhrJS("xhr.js","script",false,"xhr.js"),
-    homeJS("home.js","script",true,"home.js"),
-    loginJS("login.js","script",false,"login.js"),
-    registerJS("register.js","script",false,"register.js"),
+    XHR_JS("xhr.js","script",false,"xhr.js"),
+    HOME_JS("home.js","script",true,"home.js"),
+    LOGIN_JS("login.js","script",false,"login.js"),
+    REGISTER_JS("register.js","script",false,"register.js"),
     /*<--------------------------------MODIFIED RETURNS---------------------------->*/
-    login("login.html","page",false,"login"){
+    LOGIN("login.html","page",false,"login"){
         @Override
         public ByteBuffer postContentInBytes(HashMap<String, String> requestJson, HashMap<String, String> cookiesMap, String mapping) throws Exception {
-            return loginAndRegisterLogic.loginAndRegisterPostResponse(requestJson,cookiesMap,mapping);
+            return loginAndRegisterLogic.loginOrRegister(requestJson,cookiesMap,mapping);
         }
     },
-    register("register.html","page",false,"register"){
+    REGISTER("register.html","page",false,"register"){
         @Override
         public ByteBuffer postContentInBytes(HashMap<String, String> requestJson, HashMap<String, String> cookiesMap, String mapping) throws Exception {
-            return loginAndRegisterLogic.loginAndRegisterPostResponse(requestJson,cookiesMap,mapping);
+            return loginAndRegisterLogic.loginOrRegister(requestJson,cookiesMap,mapping);
         }
     },
-    home("home.html","page",true,"home"){
+    HOME("home.html","page",true,"home"){
         @Override
         public ByteBuffer getContentInBytes(HashMap<String, String> cookiesMap) throws Exception {
-
             if(cookiesMap.containsKey("last_time")){
                 return homePageLogic.getNewMessages(cookiesMap);
             }else if (cookiesMap.containsKey("logout")){
-                return homePageLogic.homeLogout(cookiesMap);
+                return homePageLogic.logout(cookiesMap);
             }else {
                 return super.getContentInBytes(cookiesMap);
             }
         }
-
         @Override
         public ByteBuffer postContentInBytes(HashMap<String, String> requestJson, HashMap<String, String> cookiesMap, String mapping) throws Exception {
-            return homePageLogic.homePostResponse(requestJson,cookiesMap,mapping);
+            return homePageLogic.writeMessage(requestJson,cookiesMap,mapping);
         }
     },
-    page404("404.html","page",false,"404"){
+    PAGE404("404.html","page",false,"404"){
         @Override
         public ByteBuffer getContentInBytes(HashMap<String, String> cookiesMap) throws Exception {
             Path contentPath = Paths.get(super.fullPath);
             String contentValue = String.join("\n", Files.readAllLines(contentPath));
-            String header = httpHeader
-                    .startBuild(404)
-                    .setResponseLength(contentValue.getBytes().length)
-                    .setResponseType(httpHeader.HTML).build();
+            String header =new httpBuilder(404)
+                    .setResponseLength(contentValue)
+                    .setResponseType(HTML).build();
             String fullResponse = header + contentValue;
             return ByteBuffer.wrap(fullResponse.getBytes());
         }
@@ -72,12 +75,17 @@ public enum sendibleContent {
     public static final Set<String> notAuthMappings = filterMappingsForAuth(false);
 
     public static Set<String> filterMappingsForAuth(boolean auth){
-        return Arrays.stream(sendibleContent.values()).filter(sendibleContent -> sendibleContent.forAuth==auth).map(el->el.mapping).collect(Collectors.toSet());
+        return Arrays.stream(sendibleContent.values())
+                .filter(sendibleContent->sendibleContent.forAuth==auth)
+                .map(el->el.mapping)
+                .collect(Collectors.toSet());
     }
 
     public static sendibleContent getContentOfMapping(String mapping){
-        Optional<sendibleContent> anyContent = Arrays.stream(sendibleContent.values()).filter(sendibleContent -> sendibleContent.mapping.equals(mapping)).findFirst();
-        return anyContent.orElse(page404);
+        Optional<sendibleContent> anyContent = Arrays.stream(sendibleContent.values())
+                .filter(sendibleContent -> sendibleContent.mapping.equals(mapping))
+                .findFirst();
+        return anyContent.orElse(PAGE404);
     }
 
     sendibleContent(String fileName, String type, boolean auth, String mapping){
@@ -87,12 +95,8 @@ public enum sendibleContent {
         String project = System.getProperty("user.dir");
         sb.append(project);
         switch (type){
-            case "page":
-                sb.append("\\src\\front\\pages\\");
-                break;
-            case "script":
-                sb.append("\\src\\front\\scripts\\");
-                break;
+            case "page": sb.append("\\src\\front\\pages\\");break;
+            case "script": sb.append("\\src\\front\\scripts\\");break;
         }
         sb.append(fileName);
         this.fullPath=sb.toString();
@@ -100,6 +104,7 @@ public enum sendibleContent {
     }
 
 
+    /*<---------------------------------DEFAULT RETURNS---------------------------->*/
     public ByteBuffer getContentInBytes(HashMap<String,String> cookiesMap) throws Exception {
         boolean authentic;
         if (cookiesMap.containsKey("session")){
@@ -109,29 +114,24 @@ public enum sendibleContent {
         }
         Path contentPath = Paths.get(this.fullPath);
         String contentValue = String.join("\n", Files.readAllLines(contentPath));
-        String fullResponse =null;
+        String fullResponse = null;
 
-        if(this.type.equals("page")){
-            if(!authentic&&authMappings.contains(this.mapping)){
-                fullResponse = httpHeader
-                        .startBuild(307)
-                        .setRedirect("/register")
-                        .build();
-            } else {
-                fullResponse = httpHeader
-                        .startBuild(200)
-                        .setResponseLength(contentValue.getBytes().length)
-                        .setResponseType(httpHeader.HTML)
-                        .setConnection()
-                        .setServer()
-                        .build();
-                fullResponse += contentValue;
-            }
+        if(!authentic&&authMappings.contains(this.mapping)){
+            fullResponse =new httpBuilder(307)
+                    .setRedirect("/register")
+                    .build();
+        }else if(this.type.equals("page")){
+            fullResponse =new httpBuilder(200)
+                    .setResponseLength(contentValue)
+                    .setResponseType(HTML)
+                    .setConnection()
+                    .setServer()
+                    .build();
+            fullResponse += contentValue;
         }else if(this.type.equals("script")){
-            fullResponse = httpHeader
-                    .startBuild(200)
-                    .setResponseLength(contentValue.getBytes().length)
-                    .setResponseType(httpHeader.JS)
+            fullResponse =new httpBuilder(200)
+                    .setResponseLength(contentValue)
+                    .setResponseType(JS)
                     .setConnection()
                     .setServer()
                     .build();
@@ -140,10 +140,10 @@ public enum sendibleContent {
         assert (fullResponse != null);
         return ByteBuffer.wrap(fullResponse.getBytes());
     }
-
-    /*<-----------------DEFAULT METHOD FOR OVERRIDING--------------------------------------------->*/
     public ByteBuffer postContentInBytes(HashMap<String,String> requestJson,HashMap<String,String> cookiesMap,String mapping)
             throws Exception {
-        return null;
+        String[] allowMethods = {"GET"};
+        String httpResponse =new httpBuilder(405).setAllowMethods(allowMethods).build();
+        return ByteBuffer.wrap(httpResponse.getBytes());
     }
 }

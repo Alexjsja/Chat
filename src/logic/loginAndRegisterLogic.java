@@ -1,16 +1,19 @@
 package logic;
 
 import database.dbConnector;
-import http.httpHeader;
+import http.*;
+
 
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.HashMap;
 
+import static http.httpBuilder.*;
+
 public class loginAndRegisterLogic {
-    public static ByteBuffer loginAndRegisterPostResponse(HashMap<String,String> requestJson,
-                                                          HashMap<String,String> cookiesMap,
-                                                          String mapping) throws SQLException {
+    public static ByteBuffer loginOrRegister(HashMap<String,String> requestJson,
+                                             HashMap<String,String> cookiesMap,
+                                             String mapping) throws SQLException {
         boolean success = false;
         if(mapping.equals("login")) {
             success = dbConnector.userLogin(requestJson.get("name"),requestJson.get("password"));
@@ -20,19 +23,19 @@ public class loginAndRegisterLogic {
         String successResponse = "{\"suc\":"+success+"}";
         String httpResponse;
         if(success){
-            String namePass = requestJson.get("name")+requestJson.get("password");
-            String cookieHash =Integer.toString(namePass.hashCode());
-            httpResponse = httpHeader.startBuild(200)
-                    .setResponseLength(successResponse.getBytes().length)
-                    .setCookie("session",cookieHash)
-                    .setResponseType(httpHeader.JSON)
+            String namePass = "user:"+requestJson.get("name")+" password:"+requestJson.get("password");
+            String cookieCode = cookieCipher.encode(namePass);
+            httpResponse = new httpBuilder(200)
+                    .setResponseLength(successResponse)
+                    .setCookie("session",cookieCode)
+                    .setResponseType(JSON)
                     .setConnection()
                     .setServer()
                     .build();
         }else{
-            httpResponse = httpHeader.startBuild(200)
-                    .setResponseLength(successResponse.getBytes().length)
-                    .setResponseType(httpHeader.JSON)
+            httpResponse = new httpBuilder(200)
+                    .setResponseLength(successResponse)
+                    .setResponseType(JSON)
                     .setConnection()
                     .setServer()
                     .build();

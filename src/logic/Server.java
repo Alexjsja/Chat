@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 public class Server {
-    private static final String ip = "10.1.0.64";
+    private static final String ip = "localhost";
     private static final int port = 2000;
     private static final String DBurl = "jdbc:mysql://localhost:3306/serverdatabase?serverTimezone=UTC";
     private static final  String logPass = "admin";
@@ -43,7 +43,7 @@ public class Server {
         channelBody = new ConcurrentHashMap<>();
         channelCookies = new ConcurrentHashMap<>();
 
-        dbConnector.connect(DriverManager.getConnection(DBurl, logPass, logPass));
+//        dbConnector.connect(DriverManager.getConnection(DBurl, logPass, logPass));
 
         while (true) {
             SELECTOR.select();

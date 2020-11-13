@@ -127,3 +127,17 @@ create
 begin
     set success = exists(select * from user where cookie=cookie1);
 end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+# fixme
+create
+    definer = admin@`%` procedure putMessage(IN author varchar(45), IN receiver varchar(45), IN msgtext varchar(100))
+begin
+    set @sendtime = now();
+    set @authorid = (select id from user where name=author);
+    set @receiverid = (select id from user where name=receiver);
+    insert into message(text, sendtime) values(msgtext,@sendtime);
+    set @msgid = (select id from message where sendtime=@sendtime and text=msgtext);
+
+    insert into `message-author-receiver`(`messages-id`, `author-id`, `receiver-id`)
+    values (@msgid,@authorid,@receiverid);
+end;

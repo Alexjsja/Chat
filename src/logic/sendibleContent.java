@@ -22,7 +22,7 @@ public enum sendibleContent {
 
     /*<---------------------------------DEFAULT RETURNS---------------------------->*/
     XHR_JS("xhr.js","script",false,"xhr.js"),
-    HOME_JS("home.js","script",true,"home.js"),
+    HOME_JS("home.js","script",false,"home.js"),
     LOGIN_JS("login.js","script",false,"login.js"),
     REGISTER_JS("register.js","script",false,"register.js"),
     /*<--------------------------------MODIFIED RETURNS---------------------------->*/
@@ -38,7 +38,7 @@ public enum sendibleContent {
             return loginAndRegisterLogic.loginOrRegister(requestJson,cookiesMap,mapping);
         }
     },
-    HOME("home.html","page",true,"home"){
+    HOME("home.html","page",false,"home"){
         @Override
         public ByteBuffer getContentInBytes(HashMap<String, String> cookiesMap) throws Exception {
             if(cookiesMap.containsKey("last_time")){

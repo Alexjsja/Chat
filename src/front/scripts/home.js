@@ -1,9 +1,10 @@
 const url = "/home";
 let date = new Date();
-let sql_date ='2020-11-11 15:55:05'
-// date.toISOString().slice(0, 19).replace('T', ' ');
+let sql_date =date.toISOString().slice(0, 19).replace('T', ' ');
+
 
 async function responseToHTML(response) {
+    console.log('lol')
     let div = document.getElementById("_response_");
     if (response.length > 1){
         sql_date = response[response.length-1].sendTime
@@ -38,8 +39,37 @@ function repeat(){
     document.cookie="last_time="+sql_date+"; path=/; max-age=1"
     fetch(url).then(resp =>{
         if (resp.status===200){
-           return resp.json()
+            responseToHTML(resp.json())
         }
-    }).then(resp => responseToHTML(resp))
+    })
 }
 setInterval(repeat,1000)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

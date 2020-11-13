@@ -1,6 +1,4 @@
-import http.cookieCipher;
 import logic.Server;
-
 
 public class Main {
 

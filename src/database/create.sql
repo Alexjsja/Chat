@@ -17,7 +17,7 @@ USE `server-database` ;
 -- -----------------------------------------------------
 -- Table `server-database`.`user`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `server-database`.`user` (
+CREATE TABLE IF NOT EXISTS `server-database`.`users` (
                                                         `id` INT NOT NULL AUTO_INCREMENT,
                                                         `name` VARCHAR(45) NOT NULL,
                                                         `password` VARCHAR(45) NOT NULL,
@@ -32,10 +32,10 @@ CREATE TABLE IF NOT EXISTS `server-database`.`user` (
 -- -----------------------------------------------------
 -- Table `server-database`.`message`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `server-database`.`message` (
+CREATE TABLE IF NOT EXISTS `server-database`.`messages` (
                                                            `id` INT NOT NULL AUTO_INCREMENT,
                                                            `text` VARCHAR(100) NOT NULL,
-                                                           `sendtime` DATETIME NOT NULL,
+                                                           `sendtime` DATETIME(3) NOT NULL,
                                                            PRIMARY KEY (`id`))
     ENGINE = InnoDB;
 
@@ -43,31 +43,17 @@ CREATE TABLE IF NOT EXISTS `server-database`.`message` (
 -- -----------------------------------------------------
 -- Table `server-database`.`message-author-receiver`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `server-database`.`message-author-receiver` (
-                                                                           `messages-id` INT NOT NULL,
-                                                                           `author-id` INT NOT NULL,
-                                                                           `receiver-id` INT NOT NULL,
-                                                                           PRIMARY KEY (`messages-id`, `author-id`, `receiver-id`),
-                                                                           INDEX `fk_message-author-receiver_user_idx` (`receiver-id` ASC),
-                                                                           INDEX `fk_message-author-receiver_user1_idx` (`author-id` ASC),
-                                                                           CONSTRAINT `fk_message-author-receiver_user`
-                                                                               FOREIGN KEY (`receiver-id`)
-                                                                                   REFERENCES `server-database`.`user` (`id`)
-                                                                                   ON DELETE NO ACTION
-                                                                                   ON UPDATE NO ACTION,
-                                                                           CONSTRAINT `fk_message-author-receiver_user1`
-                                                                               FOREIGN KEY (`author-id`)
-                                                                                   REFERENCES `server-database`.`user` (`id`)
-                                                                                   ON DELETE NO ACTION
-                                                                                   ON UPDATE NO ACTION,
-                                                                           CONSTRAINT `fk_message-author-receiver_message1`
-                                                                               FOREIGN KEY (`messages-id`)
-                                                                                   REFERENCES `server-database`.`message` (`id`)
-                                                                                   ON DELETE NO ACTION
-                                                                                   ON UPDATE NO ACTION)
-    ENGINE = InnoDB;
-
-
+CREATE TABLE `message-author-receiver` (
+                                           `messages-id` int NOT NULL,
+                                           `author-id` int NOT NULL,
+                                           `receiver-id` int NOT NULL,
+                                           PRIMARY KEY (`messages-id`,`author-id`,`receiver-id`),
+                                           KEY `fk_message-author-receiver_user_idx` (`receiver-id`),
+                                           KEY `fk_message-author-receiver_user1_idx` (`author-id`),
+                                           CONSTRAINT `fk_message-author-receiver_message1` FOREIGN KEY (`messages-id`) REFERENCES `messages` (`id`),
+                                           CONSTRAINT `fk_message-author-receiver_user` FOREIGN KEY (`receiver-id`) REFERENCES `users` (`id`),
+                                           CONSTRAINT `fk_message-author-receiver_user1` FOREIGN KEY (`author-id`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 -- -----------------------------------------------------
 -- Table `server-database`.`chat`
 -- -----------------------------------------------------
@@ -80,64 +66,114 @@ CREATE TABLE IF NOT EXISTS `server-database`.`chat` (
 -- -----------------------------------------------------
 -- Table `server-database`.`chat_has_user`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `server-database`.`chat_has_user` (
-                                                                 `chat_id` INT NOT NULL,
-                                                                 `user_id` INT NOT NULL,
-                                                                 PRIMARY KEY (`chat_id`, `user_id`),
-                                                                 INDEX `fk_chat_has_user_user1_idx` (`user_id` ASC) ,
-                                                                 INDEX `fk_chat_has_user_chat1_idx` (`chat_id` ASC) ,
-                                                                 CONSTRAINT `fk_chat_has_user_chat1`
-                                                                     FOREIGN KEY (`chat_id`)
-                                                                         REFERENCES `server-database`.`chat` (`id`)
-                                                                         ON DELETE NO ACTION
-                                                                         ON UPDATE NO ACTION,
-                                                                 CONSTRAINT `fk_chat_has_user_user1`
-                                                                     FOREIGN KEY (`user_id`)
-                                                                         REFERENCES `server-database`.`user` (`id`)
-                                                                         ON DELETE NO ACTION
-                                                                         ON UPDATE NO ACTION)
-    ENGINE = InnoDB;
-
-
-SET SQL_MODE=@OLD_SQL_MODE;
-SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
-SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
-
-# ////////////////////////////////////////////////////////////////////////////////////////////////////
-create procedure containsUser(IN nick varchar(45),OUT success BOOL)
-begin
-    set success = exists(select * from user where name=nick);
-end;
-# ////////////////////////////////////////////////////////////////////////////////////////////////////
-create procedure containsUserCookie(IN cookie1 varchar(45),OUT success BOOL)
-begin
-    set success = exists(select * from user where `cookie`=cookie1);
-end;
-# ////////////////////////////////////////////////////////////////////////////////////////////////////
-create procedure userLogin(
-    in usrname varchar(45),
-    in pass varchar(45),
-    out success bool)
-begin
-    set success = exists(select * from user where name=usrname and password=pass);
-end;
+CREATE TABLE `chat_has_user` (
+                                 `chat_id` int NOT NULL,
+                                 `user_id` int NOT NULL,
+                                 PRIMARY KEY (`chat_id`,`user_id`),
+                                 KEY `fk_chat_has_user_user1_idx` (`user_id`),
+                                 KEY `fk_chat_has_user_chat1_idx` (`chat_id`),
+                                 CONSTRAINT `fk_chat_has_user_chat1` FOREIGN KEY (`chat_id`) REFERENCES `chat` (`id`),
+                                 CONSTRAINT `fk_chat_has_user_user1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
     definer = admin@`%` procedure containsCookie(IN cookie1 varchar(200), OUT success tinyint(1))
 begin
-    set success = exists(select * from user where cookie=cookie1);
+    set success = exists(select * from users where cookie=cookie1);
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
-# fixme
 create
-    definer = admin@`%` procedure putMessage(IN author varchar(45), IN receiver varchar(45), IN msgtext varchar(100))
+    definer = root@localhost procedure containsNewChatMessages(IN chatname varchar(45), IN lastmsgtime datetime(3),
+                                                               OUT success tinyint(1))
 begin
-    set @sendtime = now();
-    set @authorid = (select id from user where name=author);
-    set @receiverid = (select id from user where name=receiver);
-    insert into message(text, sendtime) values(msgtext,@sendtime);
-    set @msgid = (select id from message where sendtime=@sendtime and text=msgtext);
+    set success = exists(
+            select a.name as author
+            from `message-author-receiver` as mar
+                     inner join users as a on a.id=mar.`author-id`
+                     inner join users as r on r.id=mar.`receiver-id`
+                     inner join messages as msg on msg.id=mar.`messages-id`
+            where r.name=chatname and sendtime>lastmsgtime);
+end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+create
+    definer = root@localhost procedure containsNewMessages(IN usr1 varchar(45), IN usr2 varchar(45),
+                                                           IN lastmsgtime datetime(3), OUT success tinyint(1))
+begin
+    set success = exists(
+            select a.name as author
+            from `message-author-receiver` as mar
+                     inner join users as a on a.id=mar.`author-id`
+                     inner join users as r on r.id=mar.`receiver-id`
+                     inner join messages as msg on msg.id=mar.`messages-id`
+            where sendtime>lastmsgtime and a.name=usr1 and r.name=usr2
+               or sendtime>lastmsgtime and a.name=usr2 and r.name=usr1
+        );
+end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+create
+    definer = root@localhost procedure containsUser(IN nick varchar(45), OUT success tinyint(1))
+begin
+    set success = exists(select * from users where name=nick);
+end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+create
+    definer = root@localhost procedure containsUserWithCookie(IN cookie1 varchar(200), OUT success tinyint(1))
+begin
+    set success = exists(select * from users where cookie=cookie1);
+end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+create
+    definer = root@localhost procedure getCookie(IN name1 varchar(45), OUT cookie1 varchar(200))
+begin
+    select cookie into cookie1 from users where name=name1;
+end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+create
+    definer = root@localhost procedure getNewChatMessages(IN chatname varchar(45), IN lastmsgtime datetime(3))
+begin
+    select a.name as author,
+           msg.text,msg.sendtime
+    from `message-author-receiver` as mar
+             inner join users as a on a.id=mar.`author-id`
+             inner join users as r on r.id=mar.`receiver-id`
+             inner join messages as msg on msg.id=mar.`messages-id`
+    where r.name=chatname and sendtime>lastmsgtime
+    order by sendtime limit 20;
+end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+create
+    definer = root@localhost procedure getNewMessages(IN usr1 varchar(45), IN usr2 varchar(45),
+                                                      IN lastmsgtime datetime(3))
+begin
+    select a.name as author,
+           msg.text,msg.sendtime
+    from `message-author-receiver` as mar
+             inner join users as a on a.id=mar.`author-id`
+             inner join users as r on r.id=mar.`receiver-id`
+             inner join messages as msg on msg.id=mar.`messages-id`
+    where sendtime>lastmsgtime and a.name=usr1 and r.name=usr2
+       or sendtime>lastmsgtime and a.name=usr2 and r.name=usr1
+    order by sendtime limit 20;
+end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+create
+    definer = admin@`%` procedure putMessage(IN authorCookie varchar(45), IN receiver varchar(45), IN msgtext varchar(100))
+begin
+    select @authorid:=id from users where cookie=authorCookie;
+    select @receiverid:=id from users where name=receiver;
+    insert into messages(text, sendtime) values(msgtext,now(3));
+    select @msgid:=last_insert_id() from messages limit 1;
 
     insert into `message-author-receiver`(`messages-id`, `author-id`, `receiver-id`)
     values (@msgid,@authorid,@receiverid);
 end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+create
+    definer = root@localhost procedure userLogin(IN usrname varchar(45), IN pass varchar(45), OUT success tinyint(1))
+begin
+    set success = exists(select * from users where name=usrname and password=pass);
+end;
+
+
+
+

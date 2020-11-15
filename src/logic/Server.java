@@ -21,15 +21,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Server {
     private static final String ip = "localhost";
     private static final int port = 2000;
-    private static final String DBurl = "jdbc:mysql://localhost:3306/serverdatabase?serverTimezone=UTC";
+    private static final String DBurl = "jdbc:mysql://localhost:3303/server-database?serverTimezone=UTC";
     private static final  String logPass = "admin";
 
-    private static ServerSocketChannel server;
-    private static Selector SELECTOR;
+    static ServerSocketChannel server;
+    static Selector SELECTOR;
 
-    private static Map<SocketChannel,HashMap<String,String>> channelHeader;
-    private static Map<SocketChannel,String> channelBody;
-    private static Map<SocketChannel,HashMap<String,String>> channelCookies;
+    static Map<SocketChannel,HashMap<String,String>> channelHeader;
+    static Map<SocketChannel,String> channelBody;
+    static Map<SocketChannel,HashMap<String,String>> channelCookies;
 
     public static void run() throws Exception {
         SELECTOR = Selector.open();
@@ -43,7 +43,7 @@ public class Server {
         channelBody = new ConcurrentHashMap<>();
         channelCookies = new ConcurrentHashMap<>();
 
-//        dbConnector.connect(DriverManager.getConnection(DBurl, logPass, logPass));
+        dbConnector.connect(DriverManager.getConnection(DBurl, logPass, logPass));
 
         while (true) {
             SELECTOR.select();
@@ -52,7 +52,7 @@ public class Server {
             Iterator<SelectionKey> keysIterator = keySet.iterator();
 
             while (keysIterator.hasNext()) {
-                SelectionKey key = (SelectionKey) keysIterator.next();
+                SelectionKey key = keysIterator.next();
                 keysIterator.remove();
 
                 if (key.isAcceptable()) {
@@ -70,9 +70,7 @@ public class Server {
 
                     int checkLength = userChannel.read(buffer);
                     buffer.clear();
-                    if (checkLength == -1) {
-                        continue;
-                    }
+                    if (checkLength == -1)continue;
 
                     byte[] byteRequest = new byte[checkLength];
                     System.arraycopy(buffer.array(), 0, byteRequest, 0, checkLength);

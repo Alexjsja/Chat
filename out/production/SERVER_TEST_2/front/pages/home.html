@@ -7,17 +7,20 @@
     <script src="home.js"></script>
     <script src="xhr.js"></script>
     <link rel="icon" href="data:,">
-    <style>.msg{margin: 10px;}</style>
+    <link rel="stylesheet" href="home.css">
 </head>
 <body>
-<h1>HOME</h1>
-<button onclick="logout()">logout</button>
-<div>
-    <textarea name="text" id="readable"></textarea>
-    <button onclick="send()">Отправить</button>
-</div>
-<div id="_response_">
+<div class="container">
+    <h1>HOME</h1>
+    <button onclick="logout()">logout</button>
+    <a href="/profile">profile</a>
+    <div>
+        <textarea name="text" id="readable"></textarea>
+        <button onclick="send()" id="sendButton">Отправить</button>
+    </div>
+    <div id="_response_">
 
+    </div>
 </div>
 </body>
 </html>

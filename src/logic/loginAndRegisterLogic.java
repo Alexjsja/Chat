@@ -10,24 +10,25 @@ import java.util.HashMap;
 
 import static http.httpBuilder.*;
 
+//todo split to different files
 public class loginAndRegisterLogic {
     public static ByteBuffer loginOrRegister(HashMap<String,String> requestJson,
                                              HashMap<String,String> cookiesMap,
                                              String mapping) throws SQLException {
         boolean success = false;
+        String name = requestJson.get("name");
+        String password = requestJson.get("password");
         if(mapping.equals("login")) {
-            success = dbConnector.userLogin(requestJson.get("name"),requestJson.get("password"));
+            success = dbConnector.userLogin(name,password);
         }else if(mapping.equals("register")) {
-            success = dbConnector.userRegister(requestJson.get("name"),requestJson.get("password"));
+            success = dbConnector.userRegister(name,password);
         }
         String successResponse = "{\"suc\":"+success+"}";
         String httpResponse;
         if(success){
-            String namePass = "user:"+requestJson.get("name")+" password:"+requestJson.get("password");
-            String cookieCode = cookieCipher.encode(namePass);
             httpResponse = new httpBuilder(200)
                     .setResponseLength(successResponse)
-                    .setCookie("session",cookieCode)
+                    .setCookie("session",dbConnector.getCookie(name))
                     .setResponseType(JSON)
                     .setConnection()
                     .setServer()

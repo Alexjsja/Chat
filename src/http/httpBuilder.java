@@ -52,7 +52,7 @@ public class httpBuilder{
         return this;
     }
     public httpBuilder setConnection(){
-        header.append("Connection: keep-alive\n");
+        header.append("Connection: close\n");
         return this;
     }
 

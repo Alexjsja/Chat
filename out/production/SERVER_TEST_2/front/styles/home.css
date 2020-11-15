@@ -1,0 +1,14 @@
+.msg{
+    margin: 10px;
+}
+#_response_{
+    overflow: scroll;
+    max-height: 500px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+.container{
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: initial;
+}

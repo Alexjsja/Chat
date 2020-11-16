@@ -7,10 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static http.httpBuilder.*;
@@ -27,19 +24,19 @@ public enum sendibleContent {
     /*<--------------------------------MODIFIED RETURNS---------------------------->*/
     LOGIN("login.html","page",false,"login"){
         @Override
-        public ByteBuffer postContentInBytes(HashMap<String, String> requestJson, HashMap<String, String> cookiesMap, String mapping) throws Exception {
+        public ByteBuffer postContentInBytes(Map<String, String> requestJson, Map<String, String> cookiesMap, String mapping) throws Exception {
             return loginAndRegisterLogic.loginOrRegister(requestJson,cookiesMap,mapping);
         }
     },
     REGISTER("register.html","page",false,"register"){
         @Override
-        public ByteBuffer postContentInBytes(HashMap<String, String> requestJson, HashMap<String, String> cookiesMap, String mapping) throws Exception {
+        public ByteBuffer postContentInBytes(Map<String, String> requestJson, Map<String, String> cookiesMap, String mapping) throws Exception {
             return loginAndRegisterLogic.loginOrRegister(requestJson,cookiesMap,mapping);
         }
     },
     PAGE404("404.html","page",false,"404"){
         @Override
-        public ByteBuffer getContentInBytes(HashMap<String, String> cookiesMap) throws Exception {
+        public ByteBuffer getContentInBytes(Map<String, String> cookiesMap) throws Exception {
             Path contentPath = Paths.get(super.fullPath);
             String contentValue = String.join("\n", Files.readAllLines(contentPath));
             String header =new httpBuilder(404)
@@ -53,7 +50,7 @@ public enum sendibleContent {
     PROFILE("profile.html","page",true,"profile"),
     HOME("home.html","page",true,"home"){
         @Override
-        public ByteBuffer getContentInBytes(HashMap<String, String> cookiesMap) throws Exception {
+        public ByteBuffer getContentInBytes(Map<String, String> cookiesMap) throws Exception {
             if(cookiesMap.containsKey("last_time")){
                 return homePageLogic.getNewMessages(cookiesMap);
             }else if (cookiesMap.containsKey("logout")){
@@ -65,7 +62,7 @@ public enum sendibleContent {
             }
         }
         @Override
-        public ByteBuffer postContentInBytes(HashMap<String, String> requestJson, HashMap<String, String> cookiesMap, String mapping) throws Exception {
+        public ByteBuffer postContentInBytes(Map<String, String> requestJson, Map<String, String> cookiesMap, String mapping) throws Exception {
             return homePageLogic.writeMessage(requestJson,cookiesMap,mapping);
         }
     };
@@ -109,7 +106,7 @@ public enum sendibleContent {
     }
 
     /*<---------------------------------DEFAULT RETURNS---------------------------->*/
-    public ByteBuffer getContentInBytes(HashMap<String,String> cookiesMap) throws Exception {
+    public ByteBuffer getContentInBytes(Map<String,String> cookiesMap) throws Exception {
         boolean authentic;
         if (cookiesMap.containsKey("session")){
             authentic = dbConnector.containsCookieSession(cookiesMap.get("session"));
@@ -152,7 +149,7 @@ public enum sendibleContent {
         assert (fullResponse != null);
         return ByteBuffer.wrap(fullResponse.getBytes());
     }
-    public ByteBuffer postContentInBytes(HashMap<String,String> requestJson,HashMap<String,String> cookiesMap,String mapping)
+    public ByteBuffer postContentInBytes(Map<String,String> requestJson, Map<String,String> cookiesMap, String mapping)
         throws Exception {
         String[] allowMethods = {"GET"};
         String httpResponse =new httpBuilder(405).setAllowMethods(allowMethods).build();

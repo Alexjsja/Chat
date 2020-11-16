@@ -2,14 +2,21 @@ package parsers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 public class JsonParser {
-    public static HashMap<String,String> jsonHashMap(String json){
-        json = cutOut(json,'{','}');
 
+    private String json;
+
+    public JsonParser(String json){
+        this.json=json;
+    }
+
+    public Map<String,String> jsonHashMap(){
+        json = cutOut(json,'{','}');
         String[] keyValues = getKeyValueArray(json);
-        HashMap<String,String> hm = new HashMap<>();
+        Map<String,String> hm = new HashMap<>();
 
         for(int i = 0 ; i<keyValues.length;i++){
             if(hm.containsKey(keyValues[i])){
@@ -25,7 +32,7 @@ public class JsonParser {
         str = str.substring(str.indexOf(start)+1,str.lastIndexOf(end));
         return str;
     }
-    private static String[] getKeyValueArray(String str){
+    private String[] getKeyValueArray(String str){
         str = str.replaceAll("\n","");
         StringTokenizer st = new StringTokenizer(str,",");
         String[] kv1 = new String[st.countTokens()];

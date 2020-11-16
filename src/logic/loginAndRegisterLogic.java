@@ -7,13 +7,14 @@ import http.*;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Map;
 
 import static http.httpBuilder.*;
 
 //todo split to different files
 public class loginAndRegisterLogic {
-    public static ByteBuffer loginOrRegister(HashMap<String,String> requestJson,
-                                             HashMap<String,String> cookiesMap,
+    public static ByteBuffer loginOrRegister(Map<String,String> requestJson,
+                                             Map<String,String> cookiesMap,
                                              String mapping) throws SQLException {
         boolean success = false;
         String mail =  requestJson.get("mail");

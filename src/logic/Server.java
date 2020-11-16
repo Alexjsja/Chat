@@ -1,6 +1,7 @@
 package logic;
 
 import database.dbConnector;
+import models.formattedRequestQueue;
 import parsers.HttpParser;
 import parsers.JsonParser;
 
@@ -12,37 +13,31 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.sql.DriverManager;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class Server {
-    private static final String ip = "localhost";
+    private static final String ip = "192.168.43.122";
     private static final int port = 2000;
     private static final String DBurl = "jdbc:mysql://localhost:3303/server-database?serverTimezone=UTC";
     private static final  String logPass = "admin";
 
-    static ServerSocketChannel server;
-    static Selector SELECTOR;
-
-    static Map<SocketChannel,HashMap<String,String>> channelHeader;
-    static Map<SocketChannel,String> channelBody;
-    static Map<SocketChannel,HashMap<String,String>> channelCookies;
+    private static ServerSocketChannel server;
+    private static Selector SELECTOR;
+    private static ExecutorService executorService;
 
     public static void run() throws Exception {
         SELECTOR = Selector.open();
+
+        executorService = Executors.newFixedThreadPool(4);
 
         server = ServerSocketChannel.open();
         server.bind(new InetSocketAddress(ip, port));
         server.configureBlocking(false);
         server.register(SELECTOR, SelectionKey.OP_ACCEPT);
-
-        channelHeader = new ConcurrentHashMap<>();
-        channelBody = new ConcurrentHashMap<>();
-        channelCookies = new ConcurrentHashMap<>();
 
         dbConnector.connect(DriverManager.getConnection(DBurl, logPass, logPass));
 
@@ -50,97 +45,111 @@ public class Server {
             SELECTOR.select();
 
             Set<SelectionKey> keySet = SELECTOR.selectedKeys();
+
             Iterator<SelectionKey> keysIterator = keySet.iterator();
 
             while (keysIterator.hasNext()) {
                 SelectionKey key = keysIterator.next();
-                keysIterator.remove();
+
+                if (!key.isValid())continue;
 
                 if (key.isAcceptable()) {
-                    ServerSocketChannel ssc= (ServerSocketChannel) key.channel();
-                    SocketChannel user = ssc.accept();
+                    ServerSocketChannel ServerSocketChannel= (ServerSocketChannel) key.channel();
+                    SocketChannel user = ServerSocketChannel.accept();
                     user.configureBlocking(false);
                     user.register(SELECTOR, SelectionKey.OP_READ);
                 }
-                if(!key.isValid())continue;
 
                 if (key.isReadable()) {
-                    SocketChannel userChannel = (SocketChannel) key.channel();
-                    userChannel.configureBlocking(false);
-                    ByteBuffer buffer = ByteBuffer.allocate(1024);
-
-                    int checkLength = 0;
-                    try {
-                        checkLength = userChannel.read(buffer);
-                        buffer.clear();
-                        if (checkLength == -1){
-                            continue;
+                    SocketChannel socketChannel = (SocketChannel) key.channel();
+                    readRequest(socketChannel);
+                    /*executorService.submit(()-> {
+                        try {
+                            readRequest((SocketChannel) key.channel());
+                        } catch (IOException | SQLException e) {
+                            e.printStackTrace();
                         }
-                    }catch (IOException e){
-                        userChannel.close();
-                        continue;
-                    }
-
-
-                    byte[] byteRequest = new byte[checkLength];
-                    System.arraycopy(buffer.array(), 0, byteRequest, 0, checkLength);
-                    String httpRequest = new String(byteRequest);
-
-                    HttpParser.parseHttp(httpRequest);
-
-                    String method = HttpParser.getMethod();
-                    String mapping = HttpParser.getMapping();
-
-                    HashMap<String,String> hm = new HashMap<>();
-                    hm.put(method,mapping);
-
-                    if(method.equals("POST")) {
-                        System.out.println(httpRequest);
-                        channelBody.put(userChannel, HttpParser.getBody());
-                    }
-
-
-                    channelCookies.put(userChannel,HttpParser.getCookiesMap());
-                    channelHeader.put(userChannel,hm);
-                    userChannel.register(SELECTOR,SelectionKey.OP_WRITE);
+                    });*/
                 }
                 if (key.isWritable()) {
-                    SocketChannel userChannel = (SocketChannel) key.channel();
-                    if (channelHeader.containsKey(userChannel)) {
-
-                        HashMap<String,String> method_mapping = channelHeader.get(userChannel);
-                        HashMap<String, String> cookiesMap = channelCookies.get(userChannel);
-
-                        if (method_mapping.containsKey("GET")) {
-
-                            String mapping = method_mapping.get("GET");
-
-                            sendibleContent someContent = sendibleContent.getContentOfMapping(mapping);
-
-                            ByteBuffer outBuffer = someContent.getContentInBytes(cookiesMap);
-
-                            userChannel.write(outBuffer);
-
-                        }else if(method_mapping.containsKey("POST")){
-                            HashMap<String,String> jsonPost = JsonParser.jsonHashMap(channelBody.get(userChannel));
-                            String mapping = method_mapping.get("POST");
-
-                            sendibleContent someContent = sendibleContent.getContentOfMapping(mapping);
-
-                            ByteBuffer outBuffer = someContent.postContentInBytes(jsonPost,cookiesMap,mapping);
-
-                            userChannel.write(outBuffer);
-
-                        }
-                    }
-                    channelBody.remove(userChannel);
-                    channelCookies.remove(userChannel);
-                    channelHeader.remove(userChannel);
-                    userChannel.register(SELECTOR, SelectionKey.OP_READ);
+                    SocketChannel socketChannel = (SocketChannel) key.channel();
+                    sendResponse(socketChannel);
+                    /*if (formattedRequestQueue.containsChannel(socketChannel))
+                        executorService.submit(()-> {
+                            try {
+                                sendResponse(socketChannel);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        });*/
                 }
+                keysIterator.remove();
             }
         }
     }
+    private static void sendResponse(SocketChannel userChannel) throws Exception {
+        formattedRequestQueue request = formattedRequestQueue.getFirstOnChannel(userChannel);
+        String method = request.getMethod();
+        String mapping = request.getMapping();
+        Map<String, String> cookiesMap = request.getCookies();
+        Map<String, String> jsonMap = request.getJson();
 
+        if (method.equals("GET")) {
+
+            sendibleContent someContent = sendibleContent.getContentOfMapping(mapping);
+            ByteBuffer outBuffer = someContent.getContentInBytes(cookiesMap);
+            userChannel.write(outBuffer);
+
+        }else if(method.equals("POST")){
+
+            sendibleContent someContent = sendibleContent.getContentOfMapping(mapping);
+            ByteBuffer outBuffer = someContent.postContentInBytes(jsonMap,cookiesMap,mapping);
+            userChannel.write(outBuffer);
+
+        }
+
+        userChannel.register(SELECTOR, SelectionKey.OP_READ);
+    }
+
+    private static void readRequest(SocketChannel userChannel) throws IOException, SQLException {
+        ByteBuffer buffer = ByteBuffer.allocate(1024);
+        int checkLength = 0;
+
+        try {
+            checkLength = userChannel.read(buffer);
+            if (checkLength==-1||checkLength==0){
+                userChannel.register(SELECTOR,SelectionKey.OP_CONNECT);
+                return;
+            }
+        }catch (Exception e){
+            userChannel.close();
+            return;
+        }
+        byte[] byteRequest = new byte[checkLength];
+        System.arraycopy(buffer.array(), 0, byteRequest, 0, checkLength);
+        buffer.clear();
+        String httpRequest = new String(byteRequest);
+
+        HttpParser httpParser = HttpParser.parseHttp(httpRequest);
+
+        Map<String,String> cookies = httpParser.getCookiesMap();
+        String method = httpParser.getMethod();
+        String mapping = httpParser.getMapping();
+        Map<String,String> jsonMap = new HashMap<>();
+        if(httpParser.methodIsPost()) {
+            JsonParser jsonParser = new JsonParser(httpParser.getBody());
+            jsonMap.putAll(jsonParser.jsonHashMap());
+        }
+        formattedRequestQueue builtRequest = formattedRequestQueue.newRequest()
+            .setBody(jsonMap)
+            .setChannel(userChannel)
+            .setCookies(cookies)
+            .setMapping(mapping)
+            .setMethod(method)
+            .build();
+        formattedRequestQueue.put(builtRequest);
+
+        userChannel.register(SELECTOR,SelectionKey.OP_WRITE);
+    }
 
 }

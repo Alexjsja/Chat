@@ -7,21 +7,27 @@ import java.util.HashMap;
 
 public class HttpParser {
 
-    private static HashMap<String,String> httpMap;
-    private static HashMap<String,String> cookiesMap;
-    private static String[] allLines;
-    private static String firstLine;
-    private static String method;
+    private HashMap<String,String> httpMap;
+    private HashMap<String,String> cookiesMap;
+    private String[] allLines;
+    private String firstLine;
+    private String method;
 
 
-    public static void parseHttp(String httpRequest){
-        cookiesMap = new HashMap<>();
-        httpMap = httpHashMap(httpRequest);
-        firstLine = getLines(httpRequest)[0];
-        allLines = getLines(httpRequest);
+    HttpParser(String httpRequest){
+        this.cookiesMap = new HashMap<>();
+        this.httpMap = httpHashMap(httpRequest);
+        this.firstLine = getLines(httpRequest)[0];
+        this.allLines = getLines(httpRequest);
     }
 
-    public static HashMap<String,String> parseCookie(String str){
+    public static HttpParser parseHttp(String httpRequest){
+        if (httpRequest==null||httpRequest.length()==0)
+                throw new IllegalArgumentException();
+        return new HttpParser(httpRequest);
+    }
+
+    public HashMap<String,String> parseCookie(String str){
         String[] cookies = str.split(";");
         HashMap<String,String> cookieKeyValueMap = new HashMap<>();
         for (int i = 0; i < cookies.length; i++) {
@@ -32,7 +38,7 @@ public class HttpParser {
         return cookieKeyValueMap;
     }
 
-    private static HashMap<String,String> httpHashMap(String httpRequest){
+    private HashMap<String,String> httpHashMap(String httpRequest){
         String[] lines = getLines(httpRequest);
         HashMap<String,String> hm = new HashMap<>();
         for (int i = 1 ;i<lines.length;i++){
@@ -41,19 +47,19 @@ public class HttpParser {
             }
             String[] httpKeyValue = lines[i].split(":",2);
             if(httpKeyValue[0].equals("Cookie")){
-                cookiesMap.putAll(parseCookie(httpKeyValue[1].trim()));
+                this.cookiesMap.putAll(parseCookie(httpKeyValue[1].trim()));
             }else{
                 hm.put(httpKeyValue[0].trim(),httpKeyValue[1].trim());
             }
         }
         return hm;
     }
-    private static String[] getLines(String httpRequest){
+    private String[] getLines(String httpRequest){
         return httpRequest.split("\n");
     }
 
-    public static String getBody(){
-        String[] str = allLines;
+    public String getBody(){
+        String[] str = this.allLines;
         StringBuilder body = new StringBuilder();
         boolean startBody=false;
         for (String s : str) {
@@ -66,26 +72,26 @@ public class HttpParser {
         }
         return body.toString();
     }
-    public static String getMethod(){
-        method = firstLine.substring(0,firstLine.indexOf('/')).replaceAll("\\s","");
-        return method;
+    public String getMethod(){
+        this.method = this.firstLine.substring(0,this.firstLine.indexOf('/')).replaceAll("\\s","");
+        return this.method;
     }
 
-    public static boolean methodIsPost(){
-        return method.equals("POST");
+    public boolean methodIsPost(){
+        return this.method.equals("POST");
     }
-    public static boolean methodIsGet(){
-        return method.equals("GET");
+    public boolean methodIsGet(){
+        return this.method.equals("GET");
     }
-    public static HashMap<String,String> getCookiesMap(){
-        return cookiesMap;
+    public HashMap<String,String> getCookiesMap(){
+        return this.cookiesMap;
     }
 
 
-    public static String getMapping() throws SQLException {
-        String mapping = firstLine.substring(firstLine.indexOf('/') + 1, firstLine.indexOf('H')).replaceAll("\\s", "");
+    public String getMapping() throws SQLException {
+        String mapping = this.firstLine.substring(this.firstLine.indexOf('/') + 1, this.firstLine.indexOf('H')).replaceAll("\\s", "");
 
-        boolean auth = dbConnector.containsCookieSession(cookiesMap.get("session"));
+        boolean auth = dbConnector.containsCookieSession(this.cookiesMap.get("session"));
         if (mapping.length()==0){
             if (auth){
                 mapping ="home";

@@ -16,19 +16,20 @@ public class loginAndRegisterLogic {
                                              HashMap<String,String> cookiesMap,
                                              String mapping) throws SQLException {
         boolean success = false;
-        String name = requestJson.get("name");
+        String mail =  requestJson.get("mail");
         String password = requestJson.get("password");
         if(mapping.equals("login")) {
-            success = dbConnector.userLogin(name,password);
+            success = dbConnector.userLogin(mail,password);
         }else if(mapping.equals("register")) {
-            success = dbConnector.userRegister(name,password);
+            String name = requestJson.get("name");
+            success = dbConnector.userRegister(mail,name,password);
         }
         String successResponse = "{\"suc\":"+success+"}";
         String httpResponse;
         if(success){
             httpResponse = new httpBuilder(200)
                     .setResponseLength(successResponse)
-                    .setCookie("session",dbConnector.getCookie(name))
+                    .setCookie("session",dbConnector.getCookie(mail))
                     .setResponseType(JSON)
                     .setConnection()
                     .setServer()

@@ -1,12 +1,10 @@
 package models;
 
-import java.time.LocalTime;
-
 public class Message {
     private String text;
     private String author;
-    private String receiver;
     private String sendTime;
+    private String authorRole;
 
     public String getText() {
         return text;
@@ -28,25 +26,18 @@ public class Message {
         this.sendTime = sendTime;
     }
 
-    public String getReceiver() {
-        return receiver;
-    }
-
-    public void setReceiver(String receiver) {
-        this.receiver = receiver;
-    }
-
     public void setAuthor(String author) {
         this.author = author;
     }
 
     public String toJsonFormat(){
-        return "{\"author\":\""+author+"\",\"text\":\""+text+"\",\"sendTime\":\""+sendTime+"\"}";
+        return "{\"author\":\""+author+"\",\"text\":\""+text+"\",\"sendTime\":\""+sendTime+"\",\"role\":\""+authorRole+"\"}";
     }
 
-    public Message(String text, String author, String sendTime) {
+    public Message(String text, String author, String sendTime,String authorRole) {
         this.text = text;
         this.author = author;
         this.sendTime = sendTime;
+        this.authorRole = authorRole;
     }
 }

@@ -4,6 +4,7 @@ import database.dbConnector;
 import parsers.HttpParser;
 import parsers.JsonParser;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -68,9 +69,18 @@ public class Server {
                     userChannel.configureBlocking(false);
                     ByteBuffer buffer = ByteBuffer.allocate(1024);
 
-                    int checkLength = userChannel.read(buffer);
-                    buffer.clear();
-                    if (checkLength == -1)continue;
+                    int checkLength = 0;
+                    try {
+                        checkLength = userChannel.read(buffer);
+                        buffer.clear();
+                        if (checkLength == -1){
+                            continue;
+                        }
+                    }catch (IOException e){
+                        userChannel.close();
+                        continue;
+                    }
+
 
                     byte[] byteRequest = new byte[checkLength];
                     System.arraycopy(buffer.array(), 0, byteRequest, 0, checkLength);
@@ -84,13 +94,14 @@ public class Server {
                     HashMap<String,String> hm = new HashMap<>();
                     hm.put(method,mapping);
 
-                    if(method.equals("POST"))
+                    if(method.equals("POST")) {
+                        System.out.println(httpRequest);
                         channelBody.put(userChannel, HttpParser.getBody());
+                    }
 
 
                     channelCookies.put(userChannel,HttpParser.getCookiesMap());
                     channelHeader.put(userChannel,hm);
-
                     userChannel.register(SELECTOR,SelectionKey.OP_WRITE);
                 }
                 if (key.isWritable()) {

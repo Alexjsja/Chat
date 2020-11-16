@@ -13,10 +13,12 @@ function register(result) {
 function send(){
     let name = document.getElementById("name").value;
     let pass = document.getElementById("password").value;
+    let mail = document.getElementById("mail").value;
     if(name.length>0&&pass.length>0){
         let readable = {
             name:name,
-            password:pass
+            password:pass,
+            mail:mail
         };
                exchanger("POST",url,readable)
             .then(response => response.json())

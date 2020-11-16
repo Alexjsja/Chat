@@ -12,14 +12,14 @@ function login(result) {
 }
 
 function send(){
-    let name = document.getElementById("name").value;
+    let mail = document.getElementById("mail").value;
     let pass = document.getElementById("password").value;
     if(name.length>0&&pass.length>0){
         let readable = {
-            name:name,
+            mail:mail,
             password:pass
         };
-        name.value=""
+        mail.value=""
         pass.value=""
 
         exchanger("POST",url,readable)

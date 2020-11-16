@@ -1,8 +1,5 @@
 package database;
 
-import com.mysql.cj.xdevapi.JsonArray;
-import com.mysql.cj.xdevapi.JsonParser;
-import com.mysql.cj.xdevapi.JsonString;
 import http.cookieCipher;
 import models.Message;
 
@@ -20,24 +17,25 @@ public class dbConnector {
         connection = connect;
     }
 
-    public static boolean userLogin(String name, String password) throws SQLException {
+    public static boolean userLogin(String mail, String password) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("{call userLogin(?,?,?)}");
-        callableStatement.setString(1, name);
+        callableStatement.setString(1, mail);
         callableStatement.setString(2, password);
         callableStatement.registerOutParameter(3, Types.TINYINT);
         callableStatement.execute();
         return callableStatement.getBoolean(3);
     }
 
-    public static boolean userRegister(String name, String password) throws SQLException {
-        if (!containsUser(name)) {
+    public static boolean userRegister(String mail,String name, String password) throws SQLException {
+        if (!containsMail(mail)) {
             PreparedStatement preparedStatement = connection.prepareStatement(
-                "insert into users(name,password,cookie) values (?,?,?)");
+                "insert into users(name,password,mail,cookie) values (?,?,?,?)");
 
             preparedStatement.setString(1, name);
             preparedStatement.setString(2, password);
+            preparedStatement.setString(3,mail);
             String cookie = cookieCipher.encode(name + " 1trap1 " + password);
-            preparedStatement.setString(3, cookie);
+            preparedStatement.setString(4, cookie);
             preparedStatement.execute();
             return true;
         } else {
@@ -45,17 +43,17 @@ public class dbConnector {
         }
     }
 
-    public static String getCookie(String name) throws SQLException {
+    public static String getCookie(String mail) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call getCookie(?,?)");
-        callableStatement.setString(1, name);
+        callableStatement.setString(1, mail);
         callableStatement.registerOutParameter(2, Types.VARCHAR);
         callableStatement.execute();
         return callableStatement.getString(2);
     }
 
-    public static boolean containsUser(String name) throws SQLException {
-        CallableStatement callableStatement = connection.prepareCall("call containsUser(?,?)");
-        callableStatement.setString(1, name);
+    public static boolean containsMail(String mail) throws SQLException {
+        CallableStatement callableStatement = connection.prepareCall("call containsMail(?,?)");
+        callableStatement.setString(1, mail);
         callableStatement.registerOutParameter(2, Types.TINYINT);
         callableStatement.execute();
         return callableStatement.getBoolean(2);
@@ -117,9 +115,10 @@ public class dbConnector {
         List<Message> messageList = new ArrayList<>();
         while (resultSet.next()){
             String author = resultSet.getString("author");
+            String role = resultSet.getString("role");
             String text = resultSet.getString("text");
             String sendTime = resultSet.getString("sendtime");
-            Message message = new Message(text,author,sendTime);
+            Message message = new Message(text,author,sendTime,role);
             messageList.add(message);
         }
         return messageList.toArray(new Message[0]);

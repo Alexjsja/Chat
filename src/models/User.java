@@ -6,6 +6,15 @@ public class User implements Serializable {
     private String name;
     private long id;
     private String password;
+    private String role;
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
 
     public String getName() {
         return name;
@@ -32,16 +41,13 @@ public class User implements Serializable {
         this.id = id;
         this.password = password;
     }
-    public User(String name, String password) {
+    public User(String name, String password,String role) {
         this.name = name;
         this.password = password;
+        this.role=role;
     }
     public String toJsonFormat(){
-        return "{\"id\":"+id+",\"name\":\""+name+"\"}";
+        return "{\"id\":"+id+",\"name\":\""+name+"\",\"role\":\""+role+"\"}";
     }
 
-    @Override
-    public String toString() {
-        return super.toString();
-    }
 }

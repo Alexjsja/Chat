@@ -111,9 +111,9 @@ begin
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = root@localhost procedure containsUser(IN nick varchar(45), OUT success tinyint(1))
+    definer = root@localhost procedure containsMail(IN mail1 varchar(64), OUT success tinyint(1))
 begin
-    set success = exists(select * from users where name=nick);
+    set success = exists(select * from users where mail=mail1);
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
@@ -123,9 +123,9 @@ begin
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = root@localhost procedure getCookie(IN name1 varchar(45), OUT cookie1 varchar(200))
+    definer = root@localhost procedure getCookie(IN mail1 varchar(64), OUT cookie1 varchar(200))
 begin
-    select cookie into cookie1 from users where name=name1;
+    select cookie into cookie1 from users where mail=mail1;
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
@@ -159,19 +159,21 @@ end;
 create
     definer = admin@`%` procedure putMessage(IN authorCookie varchar(45), IN receiver varchar(45), IN msgtext varchar(100))
 begin
-    select @authorid:=id from users where cookie=authorCookie;
-    select @receiverid:=id from users where name=receiver;
+    declare authorid varchar(45);
+    declare receiverid varchar(45);
+    declare msgid varchar(45);
+    set authorid= (select id from users where cookie=authorCookie);
+    set receiverid=(select id from users where name=receiver);
     insert into messages(text, sendtime) values(msgtext,now(3));
-    select @msgid:=last_insert_id() from messages limit 1;
-
+    set msgid = (select last_insert_id() from messages limit 1);
     insert into `message-author-receiver`(`messages-id`, `author-id`, `receiver-id`)
-    values (@msgid,@authorid,@receiverid);
+    values (msgid,authorid,receiverid);
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = root@localhost procedure userLogin(IN usrname varchar(45), IN pass varchar(45), OUT success tinyint(1))
+    definer = root@localhost procedure userLogin(IN mail1 varchar(64), IN pass varchar(45), OUT success tinyint(1))
 begin
-    set success = exists(select * from users where name=usrname and password=pass);
+    set success = exists(select * from users where mail=mail1 and password=pass);
 end;
 
 

@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static http.httpBuilder.JSON;
+import static http.httpBuilder.TEXT;
 
 
 public class homePageLogic {
@@ -41,7 +42,6 @@ public class homePageLogic {
             httpResponse+=messagesInJson.toString();
         }else {
             httpResponse =new httpBuilder(204)
-                .removeCookie("last_time")
                 .setConnection()
                 .setServer()
                 .build();
@@ -60,14 +60,14 @@ public class homePageLogic {
         String text = requestJson.get("text");
         String author = cookiesMap.get("session");
         //todo
-        new Thread(()-> {
-            try {
-                dbConnector.putMessage(author,chatName,text);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        });
-        String httpResponse = new httpBuilder(200).setConnection().build();
+        dbConnector.putMessage(author,chatName,text);
+        String test = "l";
+        String httpResponse = new httpBuilder(200)
+            .setServer()
+            .setResponseType(TEXT)
+            .setResponseLength(test)
+            .setConnection().build();
+        httpResponse+=test;
         return ByteBuffer.wrap(httpResponse.getBytes());
     }
 }

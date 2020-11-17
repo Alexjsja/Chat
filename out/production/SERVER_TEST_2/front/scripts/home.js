@@ -1,9 +1,8 @@
 const url = "/home";
-let startSend = false;
 
 //fixme
 let date = new Date();
-let sql_date ='2020-11-16 13:47:39.147';
+let sql_date ='2020-11-17 17:18:05.084';
 // date.toISOString().slice(0, 19).replace('T', ' ');
 
 
@@ -17,7 +16,7 @@ function responseToHTML(response) {
             if(response[i].role==='admin'){
                 text.style.color='red'
             }
-            text.innerText = response[i].text + '(' + response[i].author + ') '+response[i].sendTime;
+            text.innerText = response[i].text + '(' + response[i].author + ')'
             div.prepend(text);
         }
     }
@@ -28,7 +27,6 @@ function logout(){
 }
 function send(){
     let button = document.getElementById("sendButton");
-    button.disabled=true
     let receiveText = document.getElementById("readable");
     if(receiveText.value.length===0){
         alert("Письмо пустое!")
@@ -36,16 +34,11 @@ function send(){
         alert("Длинна письма не может превышать 100 символов")
     } else{
         let readable = {text:receiveText.value};
-        let xhr =new XMLHttpRequest;
         fetch(url,{
-                method:"POST"
-                ,body:JSON.stringify(readable)
-            }
-        ).then(resp=>console.log(resp))
-
-        // receiveText.value="";
-        setTimeout( ()=>button.disabled=false,400)
-
+            method:"POST"
+            ,body:JSON.stringify(readable)
+        }).then(r=>r.body)
+        receiveText.value="";
     }
 }
 function repeat(){
@@ -54,10 +47,11 @@ function repeat(){
         if (resp.status===200){
             return resp.json();
         }
-    }).then(resp => responseToHTML(resp))
+    }).then(resp => {
+        responseToHTML(resp)
+    })
 }
-// setInterval(repeat,1000)
-
+setInterval(repeat,1000)
 
 
 

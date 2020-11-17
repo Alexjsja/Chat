@@ -20,9 +20,9 @@ import java.util.concurrent.Executors;
 
 
 public class Server {
-    private static final String ip = "192.168.43.122";
+    private static final String ip = "10.1.0.64";
     private static final int port = 2000;
-    private static final String DBurl = "jdbc:mysql://localhost:3303/server-database?serverTimezone=UTC";
+    private static final String DBurl = "jdbc:mysql://localhost:3306/server-database?serverTimezone=UTC";
     private static final  String logPass = "admin";
 
     private static ServerSocketChannel server;
@@ -51,16 +51,14 @@ public class Server {
             while (keysIterator.hasNext()) {
                 SelectionKey key = keysIterator.next();
 
-                if (!key.isValid())continue;
-
-                if (key.isAcceptable()) {
+                if (key.isValid()&&key.isAcceptable()) {
                     ServerSocketChannel ServerSocketChannel= (ServerSocketChannel) key.channel();
                     SocketChannel user = ServerSocketChannel.accept();
                     user.configureBlocking(false);
                     user.register(SELECTOR, SelectionKey.OP_READ);
                 }
 
-                if (key.isReadable()) {
+                if (key.isValid()&&key.isReadable()) {
                     SocketChannel socketChannel = (SocketChannel) key.channel();
                     readRequest(socketChannel);
                     /*executorService.submit(()-> {
@@ -71,10 +69,11 @@ public class Server {
                         }
                     });*/
                 }
-                if (key.isWritable()) {
+                if (key.isValid()&&key.isWritable()) {
                     SocketChannel socketChannel = (SocketChannel) key.channel();
                     sendResponse(socketChannel);
-                    /*if (formattedRequestQueue.containsChannel(socketChannel))
+
+                } /*if (formattedRequestQueue.containsChannel(socketChannel))
                         executorService.submit(()-> {
                             try {
                                 sendResponse(socketChannel);
@@ -82,7 +81,6 @@ public class Server {
                                 e.printStackTrace();
                             }
                         });*/
-                }
                 keysIterator.remove();
             }
         }
@@ -118,7 +116,6 @@ public class Server {
         try {
             checkLength = userChannel.read(buffer);
             if (checkLength==-1||checkLength==0){
-                userChannel.register(SELECTOR,SelectionKey.OP_CONNECT);
                 return;
             }
         }catch (Exception e){
@@ -148,7 +145,6 @@ public class Server {
             .setMethod(method)
             .build();
         formattedRequestQueue.put(builtRequest);
-
         userChannel.register(SELECTOR,SelectionKey.OP_WRITE);
     }
 

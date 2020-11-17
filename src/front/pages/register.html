@@ -2,31 +2,76 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>LOG REG</title>
+    <title>Registration</title>
     <script src="register.js"></script>
     <script src="xhr.js"></script>
     <link rel="icon" href="data:,">
-    <style>
-        .m10{margin: 10px;}
-    </style>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&family=Roboto+Condensed&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="register.css">
 </head>
 <body>
-<h1>REGISTER</h1>
-<div>
-    <div class="m10">
-        <label for="mail">Введите почту</label>
-        <input type="email" id="mail">
-    </div>
-    <div class="m10">
-        <label for="name">Введите имя</label>
-        <input type="text" id="name">
-    </div>
-    <div class="m10">
-        <label for="password">Введите пароль</label>
-        <input type="password" id="password" >
-    </div>
-    <button onclick="send()">register</button>
+<div class="alert" id = 'alert'>
+    <span class="closebtn" onclick = 'check()'>×</span>
+    <strong>Error ! </strong>the password is more than 32 characters!
 </div>
-<a href="/login">login</a>
+<div class="scrolled">
+    <div class = 'block'>
+        <h1>Registration</h1>
+        <span><p class = 'fix'><i class="fas fa-address-book"></i></p><input type="text" id="name" placeholder = 'name'></span>
+        <br />
+        <span><p class = 'fix'><i class="fas fa-envelope"></i></p><input type="email" id="email" placeholder = 'email'></span>
+        <br />
+        <span><p class = 'fix'><i class="fas fa-lock"></i></p><input type="password" id="password" placeholder = 'password'></span>
+        <br />
+        <span><p class = 'fix'><i class="fas fa-lock"></i></p><input type="password" id="re-password" placeholder = 're-password'></span>
+        <button onclick="animationAndSend()">register</button>
+        <a href="/login">login</a>
+    </div>
+    <i class="bg fas fa-user-circle" id = 'icon'></i>
+</div>
+<script src="https://kit.fontawesome.com/c19e24bdd1.js" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+    let icon = document.getElementById('icon');
+    function animationAndSend() {
+        icon.style.fontSize =  250+'px';
+        icon.style.top = 10+'px';
+        icon.style.right = '62%';
+        setTimeout(send, 500);
+    }
+    let close = document.getElementsByClassName("closebtn");
+    let i;
+    for (i = 0; i < close.length; i++) {
+        close[i].onclick = function(){
+            let div = this.parentElement;
+            div.style.opacity = "0";
+            setTimeout(function(){ div.style.display = "none"; }, 600);
+        }
+    }
+
+    function al() {
+        if($('.alert').hasClass('active')){
+            $('.alert').removeClass('active');
+            $('.alert').animate({
+                right: '320px'
+            }, 200);
+            $('body').animate({
+                right: '0px'
+            }, 200);
+        } else {
+            $('.alert').addClass('active');
+            $('.alert').animate({
+                right: '0'
+            }, 200);
+            $('body').animate({
+                right: '320px'
+            }, 200);
+        }
+    }
+    al();
+</script>
 </body>
 </html>

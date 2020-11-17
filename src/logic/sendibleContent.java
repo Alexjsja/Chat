@@ -21,6 +21,9 @@ public enum sendibleContent {
     LOGIN_JS("login.js","script",false,"login.js"),
     REGISTER_JS("register.js","script",false,"register.js"),
     HOME_CSS("home.css","style",true,"home.css"),
+    CSS404("404.css","style",false,"404.css"),
+    REGISTER_CSS("register.css","style",false,"register.css"),
+    LOGIN_CSS("login.css","style",false,"login.css"),
     /*<--------------------------------MODIFIED RETURNS---------------------------->*/
     LOGIN("login.html","page",false,"login"){
         @Override

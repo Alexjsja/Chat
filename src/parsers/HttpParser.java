@@ -16,9 +16,9 @@ public class HttpParser {
 
     HttpParser(String httpRequest){
         this.cookiesMap = new HashMap<>();
+        this.allLines = getLines(httpRequest);
         this.httpMap = httpHashMap(httpRequest);
         this.firstLine = getLines(httpRequest)[0];
-        this.allLines = getLines(httpRequest);
     }
 
     public static HttpParser parseHttp(String httpRequest){

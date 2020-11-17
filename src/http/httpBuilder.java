@@ -7,11 +7,13 @@ public class httpBuilder{
     public static final String JS = "application/javascript";
     public static final String JSON = "application/json";
     public static final String CSS = "text/css";
+    public static final String TEXT = "text/plain";
 
     public httpBuilder(int httpCode){
         header = new StringBuilder();
         header.append("HTTP/1.1 ");
         switch (httpCode){
+            case 202: header.append("202 Accepted\n");break;
             case 307: header.append("307 Temporary Redirect\n");break;
             case 405: header.append("405 Method Not Allowed\n");break;
             case 204: header.append("204 No Content\n");break;
@@ -40,7 +42,7 @@ public class httpBuilder{
     }
 
     public httpBuilder setCookie(String cookieKey,String cookieValue){
-        header.append(String.format("Set-Cookie:%s=%s;Path=/;Max-Age=600;httponly\n",cookieKey,cookieValue));
+        header.append(String.format("Set-Cookie:%s=%s;Path=/;Max-Age=2400;httponly\n",cookieKey,cookieValue));
         return this;
     }
     public httpBuilder removeCookie(String cookieKey){

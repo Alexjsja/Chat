@@ -5,6 +5,7 @@ public class Message {
     private String author;
     private String sendTime;
     private String authorRole;
+    private int authorId;
 
     public String getText() {
         return text;
@@ -31,10 +32,11 @@ public class Message {
     }
 
     public String toJsonFormat(){
-        return "{\"author\":\""+author+"\",\"text\":\""+text+"\",\"sendTime\":\""+sendTime+"\",\"role\":\""+authorRole+"\"}";
+        return "{\"author\":\""+author+"\",\"text\":\""+text+"\",\"sendTime\":\""+sendTime+"\",\"role\":\""+authorRole+"\",\"authorId\":\""+authorId+"\"}";
     }
 
-    public Message(String text, String author, String sendTime,String authorRole) {
+    public Message(String text, String author, String sendTime,String authorRole,int authorId) {
+        this.authorId=authorId;
         this.text = text;
         this.author = author;
         this.sendTime = sendTime;

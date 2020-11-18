@@ -5,8 +5,20 @@ import java.io.Serializable;
 public class User implements Serializable {
     private String name;
     private long id;
-    private String password;
     private String role;
+    private String mail;
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public String getMail() {
+        return mail;
+    }
+
+    public void setMail(String mail) {
+        this.mail = mail;
+    }
 
     public String getRole() {
         return role;
@@ -28,26 +40,17 @@ public class User implements Serializable {
         return id;
     }
 
-    public String getPassword() {
-        return password;
-    }
+    public User(){}
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public User(String name, long id, String password) {
+    public User(String name, long id,String mail,String role) {
+        this.role=role;
+        this.mail=mail;
         this.name = name;
         this.id = id;
-        this.password = password;
     }
-    public User(String name, String password,String role) {
-        this.name = name;
-        this.password = password;
-        this.role=role;
-    }
+
     public String toJsonFormat(){
-        return "{\"id\":"+id+",\"name\":\""+name+"\",\"role\":\""+role+"\"}";
+        return "{\"id\":"+id+",\"name\":\""+name+"\",\"role\":\""+role+"\",\"mail\":\""+mail+"\"}";
     }
 
 }

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width">
     <script src="home.js"></script>
     <script src="xhr.js"></script>
+    <script src="messageExchanger.js"></script>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&display=swap" rel="stylesheet">
@@ -20,13 +21,12 @@
 </header>
 <main>
     <div class="groups-chat">
-        1
+        <button onclick="send()" id="sendButton">Отправить</button>
     </div>
     <div class="chating">
         <div id="_response_">
         </div>
         <textarea  id="readable"></textarea>
-        <button onclick="send()" id="sendButton">Отправить</button>
     </div>
 </main>
 <script src="https://kit.fontawesome.com/c19e24bdd1.js" crossorigin="anonymous"></script>

@@ -1,4 +1,5 @@
 import logic.Server;
+import models.User;
 
 public class Main {
 

@@ -3,6 +3,7 @@ package logic;
 import database.dbConnector;
 import http.httpBuilder;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,15 +17,46 @@ import static http.httpBuilder.*;
 public enum sendibleContent {
 
     /*<---------------------------------DEFAULT RETURNS---------------------------->*/
-    XHR_JS("xhr.js","script",false,"xhr.js"),
-    HOME_JS("home.js","script",true,"home.js"),
-    LOGIN_JS("login.js","script",false,"login.js"),
-    REGISTER_JS("register.js","script",false,"register.js"),
-    HOME_CSS("home.css","style",true,"home.css"),
-    CSS404("404.css","style",false,"404.css"),
-    REGISTER_CSS("register.css","style",false,"register.css"),
-    LOGIN_CSS("login.css","style",false,"login.css"),
-    /*<--------------------------------MODIFIED RETURNS---------------------------->*/
+    XHR_JS("xhr.js", "script", false, "xhr.js"),
+    HOME_JS("home.js", "script", true, "home.js"),
+    LOGIN_JS("login.js", "script", false, "login.js"),
+    REGISTER_JS("register.js", "script", false, "register.js"),
+    HOME_CSS("home.css", "style", true, "home.css"),
+    CSS404("404.css", "style", false, "404.css"),
+    REGISTER_CSS("register.css", "style", false, "register.css"),
+    LOGIN_CSS("login.css", "style", false, "login.css"),
+    MESSAGE_EXCHANGER_JS("messageExchanger.js","script",true,"messageExchanger.js"),
+    PERSONAL_JS("personal.js","script",true,"personal.js"),
+    USER_JS("user.js","script",true,"user.js"),
+    //todo
+    PROFILE("profile.html","page",true,"profile")
+    /*<--------------------------------MODIFIED RETURNS---------------------------->*/,
+    PERSONAL_CHAT("personal.html","page",true,"personal"){
+        @Override
+        public ByteBuffer getContentInBytes(Map<String, String> cookiesMap) throws Exception {
+            if (cookiesMap.containsKey("receiver")){
+                return super.getContentInBytes(cookiesMap);
+            }else {
+                return redirect("/home");
+            }
+        }
+
+        @Override
+        public ByteBuffer postContentInBytes(Map<String, String> requestJson, Map<String, String> cookiesMap, String mapping) throws Exception {
+            return personalChatLogic.writeMessage(requestJson,cookiesMap,mapping);
+        }
+    },
+    USER("user.html", "page", true, "user"){
+        @Override
+        public ByteBuffer getContentInBytes(Map<String, String> cookiesMap) throws Exception {
+            if(cookiesMap.containsKey("user")&&dbConnector.containsUserById(Integer.parseInt(cookiesMap.get(("user"))))){
+                //fixme
+                return userPageLogic.showUserPage(cookiesMap,super.fullPath);
+            }else {
+                return notFound();
+            }
+        }
+    },
     LOGIN("login.html","page",false,"login"){
         @Override
         public ByteBuffer postContentInBytes(Map<String, String> requestJson, Map<String, String> cookiesMap, String mapping) throws Exception {
@@ -40,17 +72,9 @@ public enum sendibleContent {
     PAGE404("404.html","page",false,"404"){
         @Override
         public ByteBuffer getContentInBytes(Map<String, String> cookiesMap) throws Exception {
-            Path contentPath = Paths.get(super.fullPath);
-            String contentValue = String.join("\n", Files.readAllLines(contentPath));
-            String header =new httpBuilder(404)
-                .setResponseLength(contentValue)
-                .setResponseType(HTML).setConnection()
-                .build();
-            String fullResponse = header + contentValue;
-            return ByteBuffer.wrap(fullResponse.getBytes());
+            return notFound();
         }
     },
-    PROFILE("profile.html","page",true,"profile"),
     HOME("home.html","page",true,"home"){
         @Override
         public ByteBuffer getContentInBytes(Map<String, String> cookiesMap) throws Exception {
@@ -70,10 +94,10 @@ public enum sendibleContent {
         }
     };
 
-    private final String fullPath;
-    private final String type;
-    private final boolean forAuth;
-    private final String mapping;
+    protected final String fullPath;
+    protected final String type;
+    protected final boolean forAuth;
+    protected final String mapping;
 
     sendibleContent(String fileName, String type, boolean forAuth, String mapping){
         this.mapping=mapping;
@@ -121,41 +145,67 @@ public enum sendibleContent {
         String fullResponse = null;
 
         if(!authentic&&authMappings.contains(this.mapping)){
-            fullResponse =new httpBuilder(307)
-                .setRedirect("/register")
-                .build();
+            return redirect("/register");
         }else if(this.type.equals("page")){
-            fullResponse =new httpBuilder(200)
-                .setResponseLength(contentValue)
-                .setResponseType(HTML)
-                .setConnection()
-                .setServer()
-                .build();
-            fullResponse += contentValue;
+            return returnPage(contentValue);
         }else if(this.type.equals("script")){
-            fullResponse =new httpBuilder(200)
-                .setResponseLength(contentValue)
-                .setResponseType(JS)
-                .setConnection()
-                .setServer()
-                .build();
-            fullResponse+=contentValue;
+            return returnScript(contentValue);
         }else if(this.type.equals("style")){
-            fullResponse =new httpBuilder(200)
-                .setResponseLength(contentValue)
-                .setResponseType(CSS)
-                .setConnection()
-                .setServer()
-                .build();
-            fullResponse+=contentValue;
+            return returnStyle(contentValue);
         }
-        assert (fullResponse != null);
-        return ByteBuffer.wrap(fullResponse.getBytes());
+        return null;
     }
     public ByteBuffer postContentInBytes(Map<String,String> requestJson, Map<String,String> cookiesMap, String mapping)
         throws Exception {
         String[] allowMethods = {"GET"};
         String httpResponse =new httpBuilder(405).setAllowMethods(allowMethods).build();
         return ByteBuffer.wrap(httpResponse.getBytes());
+    }
+
+    protected ByteBuffer returnPage(String html){
+        String pageHeaders =  new httpBuilder(200)
+            .setResponseLength(html)
+            .setResponseType(HTML)
+            .setConnection()
+            .setServer()
+            .build();
+        String fullResponse = pageHeaders+html;
+        return ByteBuffer.wrap(fullResponse.getBytes());
+    }
+    protected ByteBuffer returnScript(String script){
+        String scriptHeaders =  new httpBuilder(200)
+            .setResponseLength(script)
+            .setResponseType(JS)
+            .setConnection()
+            .setServer()
+            .build();
+        String fullResponse = scriptHeaders + script;
+        return ByteBuffer.wrap(fullResponse.getBytes());
+    }
+    protected ByteBuffer returnStyle(String css){
+        String styleHeaders = new httpBuilder(200)
+            .setResponseLength(css)
+            .setResponseType(CSS)
+            .setConnection()
+            .setServer()
+            .build();
+        String fullResponse = styleHeaders + css;
+        return ByteBuffer.wrap(fullResponse.getBytes());
+    }
+    protected ByteBuffer redirect(String redirectPath){
+        String redirect = new httpBuilder(307)
+            .setRedirect(redirectPath)
+            .build();
+        return ByteBuffer.wrap(redirect.getBytes());
+    }
+    protected ByteBuffer notFound() throws IOException {
+        Path contentPath = Paths.get(PAGE404.fullPath);
+        String default404page = String.join("\n", Files.readAllLines(contentPath));
+        String notFoundHeader =new httpBuilder(404)
+            .setResponseLength(default404page)
+            .setResponseType(HTML).setConnection()
+            .build();
+        String fullResponse = notFoundHeader + default404page;
+        return ByteBuffer.wrap(fullResponse.getBytes());
     }
 }

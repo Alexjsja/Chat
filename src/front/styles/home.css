@@ -78,10 +78,12 @@ header{
     margin-top: 15px;
 }
 #_response_{
+    padding: 10px;
     width: 800px;
     height: 600px;
-    background-color: 	#414d5e ;
+    background-color: #414d5e ;
     overflow-y: scroll;
+    word-wrap: break-word;
 }
 .groups-chat{
     border-right: 2px solid #fff;
@@ -106,4 +108,9 @@ textarea{
     height: 81px;
     width: 798px;
     resize: none;
+}
+
+.userHref:hover{
+    text-decoration: underline;
+    cursor: pointer;
 }

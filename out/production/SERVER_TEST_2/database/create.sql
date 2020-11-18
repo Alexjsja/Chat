@@ -54,37 +54,16 @@ CREATE TABLE `message-author-receiver` (
                                            CONSTRAINT `fk_message-author-receiver_user` FOREIGN KEY (`receiver-id`) REFERENCES `users` (`id`),
                                            CONSTRAINT `fk_message-author-receiver_user1` FOREIGN KEY (`author-id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
--- -----------------------------------------------------
--- Table `server-database`.`chat`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `server-database`.`chat` (
-                                                        `id` INT NOT NULL,
-                                                        PRIMARY KEY (`id`))
-    ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `server-database`.`chat_has_user`
--- -----------------------------------------------------
-CREATE TABLE `chat_has_user` (
-                                 `chat_id` int NOT NULL,
-                                 `user_id` int NOT NULL,
-                                 PRIMARY KEY (`chat_id`,`user_id`),
-                                 KEY `fk_chat_has_user_user1_idx` (`user_id`),
-                                 KEY `fk_chat_has_user_chat1_idx` (`chat_id`),
-                                 CONSTRAINT `fk_chat_has_user_chat1` FOREIGN KEY (`chat_id`) REFERENCES `chat` (`id`),
-                                 CONSTRAINT `fk_chat_has_user_user1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = admin@`%` procedure containsCookie(IN cookie1 varchar(200), OUT success tinyint(1))
+    procedure containsCookie(IN cookie1 varchar(200), OUT success tinyint(1))
 begin
     set success = exists(select * from users where cookie=cookie1);
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = root@localhost procedure containsNewChatMessages(IN chatname varchar(45), IN lastmsgtime datetime(3),
-                                                               OUT success tinyint(1))
+    procedure containsNewChatMessages(IN chatId int, IN lastmsgtime datetime(3),
+                                                          OUT success tinyint(1))
 begin
     set success = exists(
             select a.name as author
@@ -92,12 +71,12 @@ begin
                      inner join users as a on a.id=mar.`author-id`
                      inner join users as r on r.id=mar.`receiver-id`
                      inner join messages as msg on msg.id=mar.`messages-id`
-            where r.name=chatname and sendtime>lastmsgtime);
+            where r.id=chatId and sendtime>lastmsgtime);
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = root@localhost procedure containsNewMessages(IN usr1 varchar(45), IN usr2 varchar(45),
-                                                           IN lastmsgtime datetime(3), OUT success tinyint(1))
+    procedure containsNewMessages(IN usr1Cookie varchar(45), IN usr2Id int,
+                                                      IN lastmsgtime datetime(3), OUT success tinyint(1))
 begin
     set success = exists(
             select a.name as author
@@ -105,65 +84,63 @@ begin
                      inner join users as a on a.id=mar.`author-id`
                      inner join users as r on r.id=mar.`receiver-id`
                      inner join messages as msg on msg.id=mar.`messages-id`
-            where sendtime>lastmsgtime and a.name=usr1 and r.name=usr2
-               or sendtime>lastmsgtime and a.name=usr2 and r.name=usr1
+            where sendtime>lastmsgtime and a.cookie=usr1Cookie and r.id=usr2Id
+               or sendtime>lastmsgtime and a.id=usr2Id and r.cookie=usr1Cookie
         );
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = root@localhost procedure containsMail(IN mail1 varchar(64), OUT success tinyint(1))
+    procedure containsMail(IN mail1 varchar(64), OUT success tinyint(1))
 begin
     set success = exists(select * from users where mail=mail1);
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = root@localhost procedure containsUserWithCookie(IN cookie1 varchar(200), OUT success tinyint(1))
+    procedure containsUserWithCookie(IN cookie1 varchar(200), OUT success tinyint(1))
 begin
     set success = exists(select * from users where cookie=cookie1);
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = root@localhost procedure getCookie(IN mail1 varchar(64), OUT cookie1 varchar(200))
+    procedure getCookie(IN mail1 varchar(64), OUT cookie1 varchar(200))
 begin
     select cookie into cookie1 from users where mail=mail1;
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = root@localhost procedure getNewChatMessages(IN chatname varchar(45), IN lastmsgtime datetime(3))
+    procedure getNewChatMessages(IN chatid int, IN lastmsgtime datetime(3))
 begin
-    select a.name as author,
+    select a.name as author,a.role,a.id,
            msg.text,msg.sendtime
     from `message-author-receiver` as mar
              inner join users as a on a.id=mar.`author-id`
              inner join users as r on r.id=mar.`receiver-id`
              inner join messages as msg on msg.id=mar.`messages-id`
-    where r.name=chatname and sendtime>lastmsgtime
-    order by sendtime limit 20;
+    where r.id=chatid and sendtime>lastmsgtime
+    order by sendtime desc limit 20;
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = root@localhost procedure getNewMessages(IN usr1 varchar(45), IN usr2 varchar(45),
-                                                      IN lastmsgtime datetime(3))
+    definer = admin@`%` procedure getNewMessages(IN usr1Cookie varchar(45), IN usr2Id varchar(45), IN lastmsgtime datetime(3))
 begin
-    select a.name as author,
+    select a.name as author,a.role,a.id,
            msg.text,msg.sendtime
     from `message-author-receiver` as mar
              inner join users as a on a.id=mar.`author-id`
              inner join users as r on r.id=mar.`receiver-id`
              inner join messages as msg on msg.id=mar.`messages-id`
-    where sendtime>lastmsgtime and a.name=usr1 and r.name=usr2
-       or sendtime>lastmsgtime and a.name=usr2 and r.name=usr1
-    order by sendtime limit 20;
+    where sendtime>lastmsgtime and a.cookie=usr1Cookie and r.id=usr2Id
+       or sendtime>lastmsgtime and a.id=usr2Id and r.cookie=usr1Cookie
+    order by sendtime desc limit 20;
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = admin@`%` procedure putMessage(IN authorCookie varchar(45), IN receiver varchar(45), IN msgtext varchar(100))
+    procedure putMessage(IN authorCookie varchar(45), IN receiverid int,
+                                             IN msgtext varchar(100))
 begin
     declare authorid varchar(45);
-    declare receiverid varchar(45);
     declare msgid varchar(45);
-    set authorid= (select id from users where cookie=authorCookie);
-    set receiverid=(select id from users where name=receiver);
+    set authorid= (select id from users where cookie=authorCookie limit 1);
     insert into messages(text, sendtime) values(msgtext,now(3));
     set msgid = (select last_insert_id() from messages limit 1);
     insert into `message-author-receiver`(`messages-id`, `author-id`, `receiver-id`)
@@ -171,9 +148,32 @@ begin
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create
-    definer = root@localhost procedure userLogin(IN mail1 varchar(64), IN pass varchar(45), OUT success tinyint(1))
+    procedure userLogin(IN mail1 varchar(64), IN pass varchar(45), OUT success tinyint(1))
 begin
     set success = exists(select * from users where mail=mail1 and password=pass);
+end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+create
+    procedure getStartChatMessages(IN chatid int)
+begin
+    select a.name as author,a.role,a.id,
+           msg.text,msg.sendtime
+    from `message-author-receiver` as mar
+             inner join users as a on a.id=mar.`author-id`
+             inner join users as r on r.id=mar.`receiver-id`
+             inner join messages as msg on msg.id=mar.`messages-id`
+    where r.id=chatid
+    order by sendtime desc limit 20;
+end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+create procedure getUserInfo(in userid int)
+begin
+    select name,mail,id,role from users where id=userid;
+end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+create procedure containsUserById(in userid int,out success boolean)
+begin
+    set success = exists(select * from users where id=userid)
 end;
 
 

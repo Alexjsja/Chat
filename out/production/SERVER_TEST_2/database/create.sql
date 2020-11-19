@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `server-database`.`users` (
                                                         `mail` VARCHAR(64) NULL,
                                                         `cookie` VARCHAR(200) NOT NULL,
                                                         `icon` LONGBLOB NULL,
-                                                        `role` ENUM('user', 'admin') NULL DEFAULT 'user',
+                                                        `role` ENUM('user', 'admin','chat') NULL DEFAULT 'user',
                                                         PRIMARY KEY (`id`))
     ENGINE = InnoDB;
 
@@ -173,8 +173,11 @@ end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
 create procedure containsUserById(in userid int,out success boolean)
 begin
-    set success = exists(select * from users where id=userid)
+    set success = exists(select * from users where id=userid);
 end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
+insert into users (id, name, password, mail, cookie, role)
+values (1,'home-chat','home-chat','home-chat','home-chat','chat');
 
 
 

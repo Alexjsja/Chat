@@ -1,4 +1,3 @@
-const host = window.location.host;
 const url = "/login";
 
 function login(result) {
@@ -21,8 +20,10 @@ function send() {
         };
         mail.value = ""
         pass.value = ""
-        exchanger("POST", url, readable)
-            .then(response => response.json())
+        fetch(url,{
+            method:"POST",
+            body:JSON.stringify(readable)}
+        ).then(response => response.json())
             .then(response => login(response))
             .catch(err => alert(err));
     }else {alert("Логин или пароль пуст")}

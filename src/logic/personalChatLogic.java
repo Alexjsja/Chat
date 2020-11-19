@@ -3,6 +3,7 @@ package logic;
 import database.dbConnector;
 import http.httpBuilder;
 import models.Message;
+import models.RequestQueue;
 
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
@@ -15,8 +16,9 @@ public class personalChatLogic {
 
 
 
-    public static ByteBuffer getNewMessages(Map<String, String> cookiesMap) throws SQLException {
+    public static ByteBuffer getNewMessages(RequestQueue request) throws SQLException {
         String httpResponse = null;
+        Map<String, String> cookiesMap = request.getCookies();
         String lastTime = cookiesMap.get("last_time");
         String session = cookiesMap.get("session");
         int receiverId =Integer.parseInt(cookiesMap.get("receiver"));
@@ -54,8 +56,11 @@ public class personalChatLogic {
     }
 
 
-    public static ByteBuffer writeMessage(Map<String, String> requestJson, Map<String, String> cookiesMap, String mapping)
+    public static ByteBuffer writeMessage(RequestQueue request)
         throws SQLException {
+        Map<String, String> cookiesMap = request.getCookies();
+        Map<String, String> requestJson = request.getJson();
+
         String text = requestJson.get("text");
         String author = cookiesMap.get("session");
         int receiverId =Integer.parseInt(cookiesMap.get("receiver"));

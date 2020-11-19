@@ -6,30 +6,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class formattedRequestQueue {
+public class RequestQueue {
     private SocketChannel socketChannel;
     private Map<String,String> jsonBody;
     private Map<String,String> cookies;
+    private Map<String,String> parameters;
     private String method;
     private String mapping;
 
-    private static final List<formattedRequestQueue> fakeQueue = new ArrayList<>();
+    private static final List<RequestQueue> fakeQueue = new ArrayList<>();
 
-    formattedRequestQueue(){}
+    RequestQueue(){}
 
     /*------------------------------------Queue Methods------------------------------------------------*/
-    public static formattedRequestQueue getFirstOnChannel(SocketChannel channel){
-        formattedRequestQueue frq = fakeQueue.stream().filter(el->el.socketChannel==channel).findFirst()
+    public static RequestQueue getFirstOnChannel(SocketChannel channel){
+        RequestQueue frq = fakeQueue.stream().filter(el->el.socketChannel==channel).findFirst()
             .orElseThrow(()->new RuntimeException("Channel not found!"));
         fakeQueue.remove(frq);
         return frq;
     }
 
-    public static void put(formattedRequestQueue frq){
+    public static void put(RequestQueue frq){
         fakeQueue.add(frq);
     }
 
-    public static formattedRequestQueue getFirst(){
+    public static RequestQueue getFirst(){
         return fakeQueue.remove(0);
     }
 
@@ -39,15 +40,15 @@ public class formattedRequestQueue {
     //fixme
     public static boolean containsChannel(SocketChannel channel){
         if (isEmpty())return false;
-        Optional<formattedRequestQueue> request = fakeQueue.stream().filter(el -> el.socketChannel == channel).findFirst();
+        Optional<RequestQueue> request = fakeQueue.stream().filter(el -> el.socketChannel == channel).findFirst();
         return request.isPresent();
     }
-    public static List<formattedRequestQueue> getList(){
+    public static List<RequestQueue> getList(){
         return fakeQueue;
     }
     /*------------------------------------Concrete request Methods------------------------------------------------*/
     public static requestBuilder newRequest(){
-        return new formattedRequestQueue().new requestBuilder();
+        return new RequestQueue().new requestBuilder();
     }
 
     public Map<String, String> getCookies(){
@@ -69,32 +70,39 @@ public class formattedRequestQueue {
     public String getMethod(){
         return this.method;
     }
+    public Map<String, String> getParameters(){
+        return this.parameters;
+    }
 
     public class requestBuilder{
         requestBuilder(){}
 
         public requestBuilder setCookies(Map<String,String> cookies){
-            formattedRequestQueue.this.cookies=cookies;
+            RequestQueue.this.cookies=cookies;
+            return this;
+        }
+        public requestBuilder setParameters(Map<String,String> parameters){
+            RequestQueue.this.parameters=parameters;
             return this;
         }
         public requestBuilder setChannel(SocketChannel channel){
-            formattedRequestQueue.this.socketChannel=channel;
+            RequestQueue.this.socketChannel=channel;
             return this;
         }
         public requestBuilder setBody(Map<String,String> body){
-            formattedRequestQueue.this.jsonBody = body;
+            RequestQueue.this.jsonBody = body;
             return this;
         }
         public requestBuilder setMapping(String mapping){
-            formattedRequestQueue.this.mapping=mapping;
+            RequestQueue.this.mapping=mapping;
             return this;
         }
         public requestBuilder setMethod(String method){
-            formattedRequestQueue.this.method=method;
+            RequestQueue.this.method=method;
             return this;
         }
-        public formattedRequestQueue build(){
-            return formattedRequestQueue.this;
+        public RequestQueue build(){
+            return RequestQueue.this;
         }
 
     }

@@ -4,6 +4,7 @@ import database.dbConnector;
 
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Map;
 
 public class HttpParser {
 
@@ -25,6 +26,21 @@ public class HttpParser {
         if (httpRequest==null||httpRequest.length()==0)
                 throw new IllegalArgumentException();
         return new HttpParser(httpRequest);
+    }
+    public Map<String,String> getParameters() throws SQLException {
+        Map<String,String> parameters = new HashMap<>();
+        String mapping = getMapping();
+        String[] mappingAndParameters = mapping.split("\\?");
+        if (mappingAndParameters.length>1){
+            String[] resources = mappingAndParameters[1].split("&");
+            for (String resource : resources) {
+                String[] key_value = resource.split("=");
+                String key = key_value[0].trim();
+                String value = key_value[1].trim();
+                parameters.put(key, value);
+            }
+        }
+        return parameters;
     }
 
     public HashMap<String,String> parseCookie(String str){
@@ -89,10 +105,11 @@ public class HttpParser {
 
 
     public String getMapping() throws SQLException {
-        String mapping = this.firstLine.substring(this.firstLine.indexOf('/') + 1, this.firstLine.indexOf('H')).replaceAll("\\s", "");
+        String mappingWithParameters = this.firstLine.substring(this.firstLine.indexOf('/') + 1, this.firstLine.indexOf('H')).replaceAll("\\s", "");
+        String mapping = mappingWithParameters.split("\\?")[0];
 
-        boolean auth = dbConnector.containsCookieSession(this.cookiesMap.get("session"));
         if (mapping.length()==0){
+            boolean auth = dbConnector.containsCookieSession(this.cookiesMap.get("session"));
             if (auth){
                 mapping ="home";
             }else {

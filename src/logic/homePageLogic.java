@@ -3,6 +3,7 @@ package logic;
 import database.dbConnector;
 import models.Message;
 import http.httpBuilder;
+import models.RequestQueue;
 
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
@@ -14,15 +15,17 @@ import static http.httpBuilder.TEXT;
 
 public class homePageLogic {
 
-    private static final int chatId = 2;
+    private static final int chatId = 1;
 
     //todo
-    public static ByteBuffer getPage(Map<String, String> cookiesMap){
+    public static ByteBuffer getPage(RequestQueue request){
         return null;
     }
 
-    public static ByteBuffer getNewMessages(Map<String, String> cookiesMap) throws SQLException {
+    public static ByteBuffer getNewMessages(RequestQueue request) throws SQLException {
         String httpResponse = null;
+        Map<String, String> cookiesMap = request.getCookies();
+
         String lastTime = cookiesMap.get("last_time");
         String session = cookiesMap.get("session");
         Message[] messages = null;
@@ -57,18 +60,21 @@ public class homePageLogic {
         }
         return ByteBuffer.wrap(httpResponse.getBytes());
     }
-    public static ByteBuffer logout(Map<String, String> cookiesMap){
+    public static ByteBuffer logout(RequestQueue request){
         String httpResponse = new httpBuilder(200)
             .removeCookie("logout")
             .removeCookie("session")
             .build();
         return ByteBuffer.wrap(httpResponse.getBytes());
     }
-    public static ByteBuffer writeMessage(Map<String, String> requestJson, Map<String, String> cookiesMap, String mapping)
+    public static ByteBuffer writeMessage(RequestQueue request)
         throws SQLException {
+        Map<String, String> cookiesMap = request.getCookies();
+        Map<String, String> requestJson = request.getJson();
+
         String text = requestJson.get("text");
         String author = cookiesMap.get("session");
-        //todo
+        //fixme
         dbConnector.putMessage(author, chatId,text);
         String test = "костыль";
         String httpResponse = new httpBuilder(200)

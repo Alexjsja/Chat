@@ -20,10 +20,12 @@ function send(){
             password:pass,
             mail:mail
         };
-        exchanger("POST",url,readable)
-            .then(response => response.json())
-            .then(result => register(result))
-            .catch(err => alert(err));
+        fetch(url,{
+            method:"POST",
+            body:JSON.stringify(readable)}
+        ).then(response => response.json())
+            .then(response => register(response))
+            .catch(err => alert(err+'server error'));
     }else{
         alert("Логин или пароль пуст")
     }

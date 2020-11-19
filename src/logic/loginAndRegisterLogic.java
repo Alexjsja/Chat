@@ -2,6 +2,7 @@ package logic;
 
 import database.dbConnector;
 import http.*;
+import models.RequestQueue;
 
 
 import java.nio.ByteBuffer;
@@ -13,10 +14,11 @@ import static http.httpBuilder.*;
 
 //todo split to different files
 public class loginAndRegisterLogic {
-    public static ByteBuffer loginOrRegister(Map<String,String> requestJson,
-                                             Map<String,String> cookiesMap,
-                                             String mapping) throws SQLException {
+    public static ByteBuffer loginOrRegister(RequestQueue request) throws SQLException {
         boolean success = false;
+        String mapping = request.getMapping();
+        Map<String, String> requestJson = request.getJson();
+
         String mail =  requestJson.get("mail");
         String password = requestJson.get("password");
         if(mapping.equals("login")) {

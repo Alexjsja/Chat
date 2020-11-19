@@ -21,7 +21,7 @@ public class userPageLogic {
         String html = String.join("\n", Files.readAllLines(contentPath));
         int userId = Integer.parseInt(cookiesMap.get("user"));
         User user = dbConnector.getUserInfo(userId);
-        String[] splintedPage = html.split("<a/>");
+        String[] splintedPage = html.split("<code/>");
 
         StringBuilder content = new StringBuilder();
         content.append(splintedPage[0])
@@ -29,7 +29,7 @@ public class userPageLogic {
             .append("<h1>Почта юзера:").append(user.getMail()).append("</h1>")
             .append("<h1>Роль юзера:").append(user.getRole()).append("</h1>")
             .append("<h1>Id юзера:").append(userId).append("</h1>")
-            .append("<a onclick=\"personalWithUser(this)\" data-id=\"").append(userId).append("\">написать</a>")
+            .append("<a onclick=\"personalWithUser(this)\" class=\"userHref\" data-id=\"").append(userId).append("\">написать</a>")
         .append(splintedPage[1]);
 
         String headers =new httpBuilder(200)

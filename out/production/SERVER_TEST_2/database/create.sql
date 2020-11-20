@@ -176,6 +176,20 @@ begin
     set success = exists(select * from users where id=userid);
 end;
 # ////////////////////////////////////////////////////////////////////////////////////////////////////
+create
+    procedure getStartMessages(IN userId int,in authorCookie varchar(200))
+begin
+    select a.name as author,a.role,a.id,
+           msg.text,msg.sendtime
+    from `message-author-receiver` as mar
+             inner join users as a on a.id=mar.`author-id`
+             inner join users as r on r.id=mar.`receiver-id`
+             inner join messages as msg on msg.id=mar.`messages-id`
+    where r.id=userId and a.cookie=authorCookie or
+                a.id=userId and r.cookie=authorCookie
+    order by sendtime desc limit 20;
+end;
+# ////////////////////////////////////////////////////////////////////////////////////////////////////
 insert into users (id, name, password, mail, cookie, role)
 values (1,'home-chat','home-chat','home-chat','home-chat','chat');
 

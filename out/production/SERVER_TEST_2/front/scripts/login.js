@@ -11,7 +11,7 @@ function login(result) {
 }
 
 function send() {
-    let mail = document.getElementById("name").value;
+    let mail = document.getElementById("mail").value;
     let pass = document.getElementById("password").value;
     if (mail.length > 0 && pass.length > 0) {
         let readable = {

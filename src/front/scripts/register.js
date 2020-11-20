@@ -6,7 +6,7 @@ function register(result) {
     if (successful===true){
         window.location.href="/login"
     }else{
-        alert("Такой человек уже зарегистрирован")
+        notSuccess()
     }
 }
 

@@ -14,20 +14,35 @@
     <link rel="stylesheet" href="home.css">
 </head>
 <body>
-<header>
-    <span class = 'spaning fs' style = 'margin-left: 20px;'><a href="/profile"><button class="account"><i class="fas fa-user-alt"></i></button><p style = 'margin-left: 10px; float:right; margin-right:10px; margin-top: 25px;'>name</p></a></span>
-    <span class = 'spaning' style="float:right; margin-right: 20px;"><button onclick="logout()">logout <i class="fas fa-book-dead"></i></button></span>
-</header>
-<main>
-    <div class="groups-chat">
-        <button onclick="send()" id="sendButton">Отправить</button>
-    </div>
-    <div class="chating">
-        <div id="_response_">
+<div class="wrapper">
+    <header>
+        <span class = 'spaning fs' style = 'margin-left: 20px;'><a href="/profile"><button class="account"><i class="fas fa-user-alt"></i></button><p style = 'margin-left: 10px; float:right; margin-right:10px; margin-top: 25px;'>name</p></a></span>
+        <span class = 'spaning' style="float:right; margin-right: 20px;"><button onclick="logout()">logout <i class="fas fa-book-dead"></i></button></span>
+    </header>
+    <main>
+        <div class="groups-chat">
+            <h1>Ваши чаты <i class="fa fa-book" aria-hidden="true"></i></h1>
+            <div class="search-block">
+                <input type="text" class="search" placeholder="Поиск чата...">
+                <i class="fa fa-search" aria-hidden="true"></i>
+            </div>
         </div>
-        <textarea  id="readable"></textarea>
-    </div>
-</main>
+        <div class="chating">
+            <div id="_response_">
+            </div>
+            <textarea  id="readable"></textarea>
+        </div>
+    </main>
+</div>
+<script type="text/javascript">
+    document.addEventListener('keydown', function(event) {
+        if(document.getElementById('readable').value.trim() !== ''){
+            if (event.code == 'Enter') {
+                send()
+            }
+        }
+    });
+</script>
 <script src="https://kit.fontawesome.com/c19e24bdd1.js" crossorigin="anonymous"></script>
 </body>
 </html>

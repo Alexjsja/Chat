@@ -9,6 +9,9 @@ public class httpBuilder{
     public static final String CSS = "text/css";
     public static final String TEXT = "text/plain";
 
+    public static final String noCache = "no-store";
+
+
     public httpBuilder(int httpCode){
         header = new StringBuilder();
         header.append("HTTP/1.1 ");
@@ -25,6 +28,10 @@ public class httpBuilder{
 
     public httpBuilder setRedirect(String mapping){
         header.append(String.format("Location: %s\n",mapping));
+        return this;
+    }
+    public httpBuilder setCacheControl(String control){
+        header.append(String.format("Cache-Control: %s\n",control));
         return this;
     }
 

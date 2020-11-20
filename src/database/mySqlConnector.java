@@ -7,18 +7,18 @@ import models.User;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
+public class mySqlConnector implements DataConnector {
 
-public class dbConnector {
+    private final Connection connection;
 
-    private static Connection connection;
-
-
-    public static void connect(Connection connect) {
-        connection = connect;
+    public mySqlConnector(Connection connection){
+        this.connection=connection;
     }
 
-    public static boolean userLogin(String mail, String password) throws SQLException {
+    @Override
+    public boolean userLogin(String mail, String password) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("{call userLogin(?,?,?)}");
         callableStatement.setString(1, mail);
         callableStatement.setString(2, password);
@@ -27,7 +27,8 @@ public class dbConnector {
         return callableStatement.getBoolean(3);
     }
 
-    public static boolean userRegister(String mail,String name, String password) throws SQLException {
+    @Override
+    public boolean userRegister(String mail,String name, String password) throws SQLException {
         if (!containsMail(mail)) {
             PreparedStatement preparedStatement = connection.prepareStatement(
                 "insert into users(name,password,mail,cookie) values (?,?,?,?)");
@@ -35,7 +36,8 @@ public class dbConnector {
             preparedStatement.setString(1, name);
             preparedStatement.setString(2, password);
             preparedStatement.setString(3,mail);
-            String cookie = cookieCipher.encode(name + " 1trap1 " + password);
+
+            String cookie = cookieCipher.encode(name+" "+new Random().nextInt()+" "+ password);
             preparedStatement.setString(4, cookie);
             preparedStatement.execute();
             return true;
@@ -44,7 +46,8 @@ public class dbConnector {
         }
     }
 
-    public static String getCookie(String mail) throws SQLException {
+    @Override
+    public String getCookie(String mail) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call getCookie(?,?)");
         callableStatement.setString(1, mail);
         callableStatement.registerOutParameter(2, Types.VARCHAR);
@@ -52,15 +55,16 @@ public class dbConnector {
         return callableStatement.getString(2);
     }
 
-    public static boolean containsMail(String mail) throws SQLException {
+    @Override
+    public boolean containsMail(String mail) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call containsMail(?,?)");
         callableStatement.setString(1, mail);
         callableStatement.registerOutParameter(2, Types.TINYINT);
         callableStatement.execute();
         return callableStatement.getBoolean(2);
     }
-
-    public static boolean containsCookieSession(String sessionCookie) throws SQLException {
+    @Override
+    public boolean containsCookieSession(String sessionCookie) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call containsCookie(?,?)");
         callableStatement.setString(1, sessionCookie);
         callableStatement.registerOutParameter(2, Types.TINYINT);
@@ -68,7 +72,8 @@ public class dbConnector {
         return callableStatement.getBoolean(2);
     }
 
-    public static void putMessage(String authorCookie, int receiverId, String text) throws SQLException {
+    @Override
+    public void putMessage(String authorCookie, int receiverId, String text) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call putMessage(?,?,?)");
         callableStatement.setString(1, authorCookie);
         callableStatement.setInt(2, receiverId);
@@ -76,7 +81,8 @@ public class dbConnector {
         callableStatement.execute();
     }
 
-    public static boolean containsNewMessages(String lastTime, int chatId) throws SQLException {
+    @Override
+    public boolean containsNewMessages(String lastTime, int chatId) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call containsNewChatMessages(?,?,?)");
         callableStatement.setInt(1, chatId);
         callableStatement.setString(2, lastTime);
@@ -85,6 +91,7 @@ public class dbConnector {
         return callableStatement.getBoolean(3);
     }
 
+    @Override
     public boolean containsNewMessages(String lastTime, String user1Cookie, int user2Id) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call containsNewMessages(?,?,?,?)");
         callableStatement.setString(1, user1Cookie);
@@ -95,7 +102,8 @@ public class dbConnector {
         return callableStatement.getBoolean(4);
     }
 
-    public static Message[] getNewMessages(String lastTime, int chatId) throws SQLException {
+    @Override
+    public Message[] getNewMessages(String lastTime, int chatId) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call getNewChatMessages(?,?)");
         callableStatement.setInt(1,chatId);
         callableStatement.setString(2,lastTime);
@@ -103,14 +111,23 @@ public class dbConnector {
         return parseMessagesIntoDB(resultSet);
     }
 
-    public static Message[] getStartMessages(int chatId) throws SQLException {
+    @Override
+    public Message[] getStartMessages(int chatId) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call getStartChatMessages(?)");
         callableStatement.setInt(1,chatId);
         ResultSet resultSet = callableStatement.executeQuery();
         return parseMessagesIntoDB(resultSet);
     }
+    public Message[] getStartMessages(int receiverId,String authorCookie) throws SQLException {
+        CallableStatement callableStatement = connection.prepareCall("call getStartMessages(?,?)");
+        callableStatement.setInt(1,receiverId);
+        callableStatement.setString(2,authorCookie);
+        ResultSet resultSet = callableStatement.executeQuery();
+        return parseMessagesIntoDB(resultSet);
+    }
 
-    public static Message[] getNewMessages(String lastTime, String user1Cookie, int user2Id) throws SQLException {
+    @Override
+    public Message[] getNewMessages(String lastTime, String user1Cookie, int user2Id) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call getNewMessages(?,?,?)");
         callableStatement.setString(1,user1Cookie);
         callableStatement.setInt(2,user2Id);
@@ -119,14 +136,16 @@ public class dbConnector {
         return parseMessagesIntoDB(resultSet);
     }
 
-    public static User getUserInfo(int id) throws SQLException {
+    @Override
+    public User getUserInfo(int id) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call getUserInfo(?)");
         callableStatement.setInt(1,id);
         ResultSet resultSet = callableStatement.executeQuery();
         return parseUserIntoDB(resultSet);
     }
 
-    public static boolean containsUserById(int id) throws SQLException {
+    @Override
+    public boolean containsUserById(int id) throws SQLException {
         CallableStatement callableStatement = connection.prepareCall("call containsUserById(?,?)");
         callableStatement.setInt(1,id);
         callableStatement.registerOutParameter(2,Types.BOOLEAN);
@@ -134,7 +153,19 @@ public class dbConnector {
         return callableStatement.getBoolean(2);
     }
 
-    private static User parseUserIntoDB(ResultSet resultSet) throws SQLException {
+    @Override
+    public boolean containsUserById(String id) throws SQLException {
+        if (id==null)return false;
+        int id0;
+        try {
+            id0 = Integer.parseInt(id);
+        }catch (Exception e){
+            return false;
+        }
+        return containsUserById(id0);
+    }
+
+    private User parseUserIntoDB(ResultSet resultSet) throws SQLException {
         User user = new User();
         while (resultSet.next()){
             user.setId(resultSet.getInt("id"));
@@ -145,7 +176,7 @@ public class dbConnector {
         return user;
     }
 
-    private static Message[] parseMessagesIntoDB(ResultSet resultSet) throws SQLException {
+    private Message[] parseMessagesIntoDB(ResultSet resultSet) throws SQLException {
         List<Message> messageList = new ArrayList<>();
         while (resultSet.next()){
             String author = resultSet.getString("author");
@@ -156,6 +187,12 @@ public class dbConnector {
             Message message = new Message(text,author,sendTime,role,authorId);
             messageList.add(message);
         }
+        if (messageList.isEmpty()){
+            messageList.add(new Message("Сообщений нет,станьте первым кто его напишет",
+                "SERVER","2010-10-10 10:10:10",
+                "chat",99999999));
+        }
         return messageList.toArray(new Message[0]);
     }
+
 }

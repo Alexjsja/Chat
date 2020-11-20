@@ -10,7 +10,9 @@ function responseToHTML(response) {
             }
             msg.innerText = response[i].text
             let hrefText = response[i].author + '(' + response[i].authorId + ')'
-            msg.innerHTML += '<a class="userHref" onclick="goToUser(this)" data-id="' + response[i].authorId + '">' + hrefText + '</a>'
+            if (response[i].role !== 'chat') {
+                msg.innerHTML += '<a class="userHref" href="/user?id=' + response[i].authorId + '">' + hrefText + '</a>'
+            }
             div.appendChild(msg);
             scroll();
         }

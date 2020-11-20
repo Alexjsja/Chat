@@ -1,6 +1,6 @@
 package logic;
 
-import database.dbConnector;
+import database.DataConnector;
 import http.httpBuilder;
 import models.Message;
 import models.RequestQueue;
@@ -14,36 +14,33 @@ import static http.httpBuilder.TEXT;
 
 public class personalChatLogic {
 
-
-
     public static ByteBuffer getNewMessages(RequestQueue request) throws SQLException {
         String httpResponse = null;
         Map<String, String> cookiesMap = request.getCookies();
+        Map<String, String> parameters = request.getParameters();
+        DataConnector dataConnector = request.getDataConnector();
+
         String lastTime = cookiesMap.get("last_time");
         String session = cookiesMap.get("session");
-        int receiverId =Integer.parseInt(cookiesMap.get("receiver"));
+        String userId = parameters.get("id");
+
+        int receiverId = Integer.parseInt(userId);
         Message[] messages = null;
-//        if (lastTime.equals("start")){
-//            messages = dbConnector.getStartMessages(receiverId);
-//        }else if(dbConnector.containsNewMessages(lastTime,receiverId)){
-            messages = dbConnector.getNewMessages(lastTime,session,receiverId);
-//        }
+        if (lastTime.equals("start")){
+            messages = dataConnector.getStartMessages(receiverId,session);
+        }else if(dataConnector.containsNewMessages(lastTime,session,receiverId)){
+            messages = dataConnector.getNewMessages(lastTime,session,receiverId);
+        }
 
         if(messages!=null){
-            StringBuilder messagesInJson = new StringBuilder();
-            for (int i = 0; i < messages.length; i++) {
-                if (i==0)messagesInJson.append('[');
-                messagesInJson.append(messages[i].toJsonFormat());
-                if (i+1!=messages.length)messagesInJson.append(",");
-                if (i+1==messages.length)messagesInJson.append(']');
-            }
+            String messagesInJson = Message.toJsonArray(messages);
             httpResponse=new httpBuilder(200)
-                .setResponseLength(messagesInJson.toString())
+                .setResponseLength(messagesInJson)
                 .removeCookie("last_time")
                 .setCookie("session",session)
                 .setResponseType(JSON)
                 .setServer().setConnection().build();
-            httpResponse+=messagesInJson.toString();
+            httpResponse+=messagesInJson;
         } else {
             httpResponse =new httpBuilder(204)
                 .removeCookie("last_time")
@@ -55,17 +52,25 @@ public class personalChatLogic {
         return ByteBuffer.wrap(httpResponse.getBytes());
     }
 
-
     public static ByteBuffer writeMessage(RequestQueue request)
         throws SQLException {
         Map<String, String> cookiesMap = request.getCookies();
+        Map<String, String> parameters = request.getParameters();
         Map<String, String> requestJson = request.getJson();
+        DataConnector dataConnector = request.getDataConnector();
 
         String text = requestJson.get("text");
         String author = cookiesMap.get("session");
-        int receiverId =Integer.parseInt(cookiesMap.get("receiver"));
+        int receiverId = Integer.parseInt(parameters.get("id"));
 
-        dbConnector.putMessage(author,receiverId,text);
+        new Thread(()->{
+            try {
+                dataConnector.putMessage(author, receiverId,text);
+            } catch (SQLException throwable) {
+                throwable.printStackTrace();
+            }
+        }).start();
+
         String test = "костыль";
         String httpResponse = new httpBuilder(200)
             .setServer()

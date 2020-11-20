@@ -34,6 +34,16 @@ public class Message {
     public String toJsonFormat(){
         return "{\"author\":\""+author+"\",\"text\":\""+text+"\",\"sendTime\":\""+sendTime+"\",\"role\":\""+authorRole+"\",\"authorId\":\""+authorId+"\"}";
     }
+    public static String toJsonArray(Message[] messages){
+        StringBuilder messagesInJson = new StringBuilder();
+        for (int i = 0; i < messages.length; i++) {
+            if (i==0)messagesInJson.append('[');
+            messagesInJson.append(messages[i].toJsonFormat());
+            if (i+1!=messages.length)messagesInJson.append(",");
+            if (i+1==messages.length)messagesInJson.append(']');
+        }
+        return messagesInJson.toString();
+    }
 
     public Message(String text, String author, String sendTime,String authorRole,int authorId) {
         this.authorId=authorId;

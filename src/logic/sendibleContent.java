@@ -1,6 +1,7 @@
 package logic;
 
-import database.dbConnector;
+import com.sun.xml.internal.ws.util.StringUtils;
+import database.DataConnector;
 import http.httpBuilder;
 import models.RequestQueue;
 
@@ -9,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,32 +30,40 @@ public enum sendibleContent {
     MESSAGE_EXCHANGER_JS("messageExchanger.js","script",true,"messageExchanger.js"),
     PERSONAL_JS("personal.js","script",true,"personal.js"),
     USER_JS("user.js","script",true,"user.js"),
+    NULL_LENGTH_REQUEST("404.html","page",false,""),
     //todo
     PROFILE("profile.html","page",true,"profile")
     /*<--------------------------------MODIFIED RETURNS---------------------------->*/,
     PERSONAL_CHAT("personal.html","page",true,"personal"){
         @Override
-        public ByteBuffer getContentInBytes(RequestQueue request) throws Exception {
+        public ByteBuffer doGet(RequestQueue request) throws Exception {
+            DataConnector dataConnector = request.getDataConnector();
+            Map<String, String> parameters = request.getParameters();
             Map<String, String> cookiesMap = request.getCookies();
-            if (cookiesMap.containsKey("receiver")){
-                return super.getContentInBytes(request);
+            if (dataConnector.containsUserById(parameters.get("id"))){
+                if (cookiesMap.containsKey("last_time")){
+                    return personalChatLogic.getNewMessages(request);
+                }
+                return super.doGet(request);
             }else {
-                return redirect("/home");
+                return notFound();
             }
         }
 
         @Override
-        public ByteBuffer postContentInBytes(RequestQueue request) throws Exception {
+        public ByteBuffer doPost(RequestQueue request) throws Exception {
             return personalChatLogic.writeMessage(request);
         }
     },
     USER("user.html", "page", true, "user"){
         @Override
-        public ByteBuffer getContentInBytes(RequestQueue request) throws Exception {
-            Map<String, String> cookiesMap = request.getCookies();
-            if(cookiesMap.containsKey("user")&&dbConnector.containsUserById(Integer.parseInt(cookiesMap.get(("user"))))){
-                //fixme
-                return userPageLogic.showUserPage(cookiesMap,super.fullPath);
+        //fixme
+        public ByteBuffer doGet(RequestQueue request) throws Exception {
+            DataConnector dataConnector = request.getDataConnector();
+            Map<String, String> parameters = request.getParameters();
+
+            if (dataConnector.containsUserById(parameters.get("id"))){
+                return userPageLogic.showUserPage(request,this.fullPath);
             }else {
                 return notFound();
             }
@@ -61,38 +71,38 @@ public enum sendibleContent {
     },
     LOGIN("login.html","page",false,"login"){
         @Override
-        public ByteBuffer postContentInBytes(RequestQueue request) throws Exception {
+        public ByteBuffer doPost(RequestQueue request) throws Exception {
             return loginAndRegisterLogic.loginOrRegister(request);
         }
     },
     REGISTER("register.html","page",false,"register"){
         @Override
-        public ByteBuffer postContentInBytes(RequestQueue request) throws Exception {
+        public ByteBuffer doPost(RequestQueue request) throws Exception {
             return loginAndRegisterLogic.loginOrRegister(request);
         }
     },
     PAGE404("404.html","page",false,"404"){
         @Override
-        public ByteBuffer getContentInBytes(RequestQueue request) throws Exception {
+        public ByteBuffer doGet(RequestQueue request) throws Exception {
             return notFound();
         }
     },
     HOME("home.html","page",true,"home"){
         @Override
-        public ByteBuffer getContentInBytes(RequestQueue request) throws Exception {
+        public ByteBuffer doGet(RequestQueue request) throws Exception {
             Map<String, String> cookiesMap = request.getCookies();
             if(cookiesMap.containsKey("last_time")){
                 return homePageLogic.getNewMessages(request);
             }else if (cookiesMap.containsKey("logout")){
                 return homePageLogic.logout(request);
             }else {
-                return super.getContentInBytes(request);
+                return super.doGet(request);
                 //todo
 //                return homePageLogic.getPage(cookiesMap);
             }
         }
         @Override
-        public ByteBuffer postContentInBytes(RequestQueue request) throws Exception {
+        public ByteBuffer doPost(RequestQueue request) throws Exception {
             return homePageLogic.writeMessage(request);
         }
     };
@@ -137,42 +147,30 @@ public enum sendibleContent {
     }
 
     /*<---------------------------------DEFAULT RETURNS---------------------------->*/
-    public ByteBuffer getContentInBytes(RequestQueue request) throws Exception {
+    public ByteBuffer doGet(RequestQueue request) throws Exception {
         boolean authentic;
         Map<String, String> cookiesMap = request.getCookies();
+        DataConnector dataConnector = request.getDataConnector();
         if (cookiesMap.containsKey("session")){
-            authentic = dbConnector.containsCookieSession(cookiesMap.get("session"));
-        }else {
-            authentic = false;
-        }
+            authentic = dataConnector.containsCookieSession(cookiesMap.get("session"));
+        }else { authentic = false; }
         Path contentPath = Paths.get(this.fullPath);
         String contentValue = String.join("\n", Files.readAllLines(contentPath));
-
         String type = this.type;
 
-        if(!authentic&&authMappings.contains(this.mapping)){
-
-            return redirect("/register");
-
+        if (this==NULL_LENGTH_REQUEST){
+            return authentic ? redirect("/home") : redirect("/register");
         }else if(type.equals("page")){
-
             return returnPage(contentValue);
-
         }else if(type.equals("script")){
-
             return returnScript(contentValue);
-
         }else if(type.equals("style")){
-
             return returnStyle(contentValue);
-
         }else {
-
             return notFound();
-
         }
     }
-    public ByteBuffer postContentInBytes(RequestQueue request)
+    public ByteBuffer doPost(RequestQueue request)
         throws Exception {
         String[] allowMethods = {"GET"};
         String httpResponse =new httpBuilder(405).setAllowMethods(allowMethods).build();
@@ -225,4 +223,5 @@ public enum sendibleContent {
         String fullResponse = notFoundHeader + default404page;
         return ByteBuffer.wrap(fullResponse.getBytes());
     }
+
 }

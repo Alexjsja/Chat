@@ -1,6 +1,7 @@
 package logic;
 
-import database.dbConnector;
+import database.DataConnector;
+import database.mySqlConnector;
 import models.RequestQueue;
 import parsers.HttpParser;
 import parsers.JsonParser;
@@ -17,27 +18,27 @@ import java.util.concurrent.Executors;
 
 
 public class Server {
-    private static final String ip = "localhost";
+    private static final String ip = "10.1.0.64";
     private static final int port = 2000;
-    private static final String DBurl = "jdbc:mysql://localhost:3303/server-database?serverTimezone=UTC";
+    private static final String DBurl = "jdbc:mysql://localhost:3306/server-database?serverTimezone=UTC";
     private static final  String logPass = "admin";
 
     private static ServerSocketChannel server;
     private static Selector SELECTOR;
     private static ExecutorService executorService;
+    private static DataConnector dataConnector;
 
     public static void run() throws Exception {
         SELECTOR = Selector.open();
 
-        executorService = Executors.newFixedThreadPool(4);
+        executorService = Executors.newFixedThreadPool(3);
 
         server = ServerSocketChannel.open();
         server.bind(new InetSocketAddress(ip, port));
         server.configureBlocking(false);
         server.register(SELECTOR, SelectionKey.OP_ACCEPT);
 
-        dbConnector.connect(DriverManager.getConnection(DBurl, logPass, logPass));
-
+        dataConnector = new mySqlConnector(DriverManager.getConnection(DBurl, logPass, logPass));
         while (true) {
             SELECTOR.select();
 
@@ -55,23 +56,9 @@ public class Server {
                     user.register(SELECTOR, SelectionKey.OP_READ);
                 }else if (key.isReadable()) {
                     readRequest(key);
-                    /*executorService.submit(()-> {
-                        try {
-                            readRequest((SocketChannel) key.channel());
-                        } catch (IOException | SQLException e) {
-                            e.printStackTrace();
-                        }
-                    });*/
                 }else if (key.isWritable()) {
                     sendResponse(key);
-                } /*if (formattedRequestQueue.containsChannel(socketChannel))
-                        executorService.submit(()-> {
-                            try {
-                                sendResponse(socketChannel);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        });*/
+                }
                 keysIterator.remove();
             }
         }
@@ -83,15 +70,20 @@ public class Server {
         String mapping = request.getMapping();
 
         if (method.equals("GET")) {
-
             sendibleContent someContent = sendibleContent.getContentOfMapping(mapping);
-            userChannel.write(someContent.getContentInBytes(request));
+            try {
+                userChannel.write(someContent.doGet(request));
+            }catch (IOException e) {
+                key.cancel();
+            }
 
         }else if(method.equals("POST")){
-
             sendibleContent someContent = sendibleContent.getContentOfMapping(mapping);
-            userChannel.write(someContent.postContentInBytes(request));
-
+            try {
+                userChannel.write(someContent.doPost(request));
+            }catch (IOException e) {
+                key.cancel();
+            }
         }
         key.cancel();
         userChannel.close();
@@ -108,13 +100,10 @@ public class Server {
                 checkLength = userChannel.read(buffer);
                 httpRequest.append(new String(buffer.array()));
             }while (buffer.capacity()==buffer.position());
-            buffer.clear(); }catch (Exception e){
-            e.printStackTrace();
-        }
-        if (checkLength==0){return;}
+            buffer.clear(); } catch (Exception ignored){}
         if (checkLength==-1){
-            userChannel.close();
             key.cancel();
+            userChannel.close();
             return;
         }
         HttpParser httpParser = HttpParser.parseHttp(httpRequest.toString());
@@ -130,6 +119,7 @@ public class Server {
         }
 
         RequestQueue builtRequest = RequestQueue.newRequest()
+            .setDataConnector(dataConnector)
             .setParameters(requestParameters)
             .setChannel(userChannel)
             .setCookies(cookies)

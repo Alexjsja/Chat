@@ -6,12 +6,14 @@ function login(result) {
     if (successful===true){
         window.location.href="/home"
     }else{
-        alert("Логин и/или пароль не верные")
+
+        document.querySelector('.alert').innerHTML =` <span class="closebtn" onclick = 'closeErr()'>×</span> Логин или пароль не верный`
+        notSuccess('320px', '0px')
     }
 }
 
 function send() {
-    let mail = document.getElementById("name").value;
+    let mail = document.getElementById("mail").value;
     let pass = document.getElementById("password").value;
     if (mail.length > 0 && pass.length > 0) {
         let readable = {

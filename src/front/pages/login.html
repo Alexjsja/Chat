@@ -19,7 +19,7 @@
 <div class="scrolled">
     <div class = 'block'>
         <h1>Login</h1>
-        <span><p class = 'fix'><i class="fas fa-address-book"></i></p><input type="text" id="name" placeholder = 'name'></span>
+        <span><p class = 'fix'><i class="fas fa-address-book"></i></p><input type="text" id="mail" placeholder = 'mail'></span>
         <br/>
         <span><p class = 'fix'><i class="fas fa-lock"></i></p><input type="password" id="password" placeholder = 'password'></span>
         <button onclick = 'animation()' class = 'btn'>Login</button>
@@ -37,35 +37,30 @@
         icon.style.right = '62%';
         setTimeout(send,500)
     }
-    let close = document.getElementsByClassName("closebtn");
-    let i;
-    for (i = 0; i < close.length; i++) {
-        close[i].onclick = function(){
-            var div = this.parentElement;
-            div.style.opacity = "0";
-            setTimeout(function(){ div.style.display = "none"; }, 600);
-        }
+    function closeErr(){
+        notSuccess('-320px','0px')
     }
-    function al() {
+
+    function notSuccess(a,b) {
         if($('.alert').hasClass('active')){
             $('.alert').removeClass('active');
             $('.alert').animate({
-                right: '320px'
+                right: a
             }, 200);
             $('body').animate({
-                right: '0px'
+                right: b
             }, 200);
         } else {
             $('.alert').addClass('active');
             $('.alert').animate({
-                right: '0'
+                right: b
             }, 200);
             $('body').animate({
-                right: '320px'
+                right: a
             }, 200);
         }
     }
-    al();
+
 </script>
 </body>
 </html>

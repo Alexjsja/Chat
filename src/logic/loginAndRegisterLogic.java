@@ -1,13 +1,12 @@
 package logic;
 
-import database.dbConnector;
+import database.DataConnector;
 import http.*;
 import models.RequestQueue;
 
 
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.Map;
 
 import static http.httpBuilder.*;
@@ -18,21 +17,22 @@ public class loginAndRegisterLogic {
         boolean success = false;
         String mapping = request.getMapping();
         Map<String, String> requestJson = request.getJson();
+        DataConnector dataConnector = request.getDataConnector();
 
         String mail =  requestJson.get("mail");
         String password = requestJson.get("password");
         if(mapping.equals("login")) {
-            success = dbConnector.userLogin(mail,password);
+            success = dataConnector.userLogin(mail,password);
         }else if(mapping.equals("register")) {
             String name = requestJson.get("name");
-            success = dbConnector.userRegister(mail,name,password);
+            success = dataConnector.userRegister(mail,name,password);
         }
         String successResponse = "{\"suc\":"+success+"}";
         String httpResponse;
         if(success){
             httpResponse = new httpBuilder(200)
                     .setResponseLength(successResponse)
-                    .setCookie("session",dbConnector.getCookie(mail))
+                    .setCookie("session", dataConnector.getCookie(mail))
                     .setResponseType(JSON)
                     .setConnection()
                     .setServer()

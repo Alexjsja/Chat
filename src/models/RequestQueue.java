@@ -1,5 +1,8 @@
 package models;
 
+import database.DataConnector;
+
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,44 +16,48 @@ public class RequestQueue {
     private Map<String,String> parameters;
     private String method;
     private String mapping;
+    private DataConnector dataConnector;
 
     private static final List<RequestQueue> fakeQueue = new ArrayList<>();
 
     RequestQueue(){}
 
     /*------------------------------------Queue Methods------------------------------------------------*/
-    public static RequestQueue getFirstOnChannel(SocketChannel channel){
+    public static synchronized RequestQueue getFirstOnChannel(SocketChannel channel){
         RequestQueue frq = fakeQueue.stream().filter(el->el.socketChannel==channel).findFirst()
-            .orElseThrow(()->new RuntimeException("Channel not found!"));
+            .orElseThrow(()->new RuntimeException(" Channel not found!"));
         fakeQueue.remove(frq);
         return frq;
     }
 
-    public static void put(RequestQueue frq){
+    public static synchronized void put(RequestQueue frq){
         fakeQueue.add(frq);
     }
 
-    public static RequestQueue getFirst(){
+    public static synchronized RequestQueue getFirst(){
         return fakeQueue.remove(0);
     }
 
-    public static boolean isEmpty(){
+    public static synchronized boolean isEmpty(){
         return fakeQueue.isEmpty();
     }
-    //fixme
-    public static boolean containsChannel(SocketChannel channel){
+
+    public static synchronized boolean containsKey(SelectionKey key){
+        SocketChannel channel = (SocketChannel) key.channel();
         if (isEmpty())return false;
         Optional<RequestQueue> request = fakeQueue.stream().filter(el -> el.socketChannel == channel).findFirst();
         return request.isPresent();
     }
-    public static List<RequestQueue> getList(){
+    public static synchronized List<RequestQueue> getList(){
         return fakeQueue;
     }
+
     /*------------------------------------Concrete request Methods------------------------------------------------*/
     public static requestBuilder newRequest(){
         return new RequestQueue().new requestBuilder();
     }
 
+    public DataConnector getDataConnector() { return dataConnector; }
     public Map<String, String> getCookies(){
         return this.cookies;
     }
@@ -73,6 +80,8 @@ public class RequestQueue {
     public Map<String, String> getParameters(){
         return this.parameters;
     }
+
+
 
     public class requestBuilder{
         requestBuilder(){}
@@ -101,10 +110,14 @@ public class RequestQueue {
             RequestQueue.this.method=method;
             return this;
         }
+        public requestBuilder setDataConnector(DataConnector dataConnector) {
+            RequestQueue.this.dataConnector=dataConnector;
+            return this;
+        }
+
         public RequestQueue build(){
             return RequestQueue.this;
         }
-
     }
 }
 

@@ -1,6 +1,6 @@
 package parsers;
 
-import database.dbConnector;
+import database.DataConnector;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -29,14 +29,20 @@ public class HttpParser {
     }
     public Map<String,String> getParameters() throws SQLException {
         Map<String,String> parameters = new HashMap<>();
-        String mapping = getMapping();
+        String mapping = getMappingWithParams();
         String[] mappingAndParameters = mapping.split("\\?");
         if (mappingAndParameters.length>1){
             String[] resources = mappingAndParameters[1].split("&");
             for (String resource : resources) {
                 String[] key_value = resource.split("=");
-                String key = key_value[0].trim();
-                String value = key_value[1].trim();
+                String key = null;
+                String value = null;
+                if(key_value.length==2){
+                    if (key_value[0].length()!=0||key_value[1].length()!=0){
+                        key = key_value[0].trim();
+                        value = key_value[1].trim();
+                    }
+                }
                 parameters.put(key, value);
             }
         }
@@ -105,17 +111,10 @@ public class HttpParser {
 
 
     public String getMapping() throws SQLException {
-        String mappingWithParameters = this.firstLine.substring(this.firstLine.indexOf('/') + 1, this.firstLine.indexOf('H')).replaceAll("\\s", "");
-        String mapping = mappingWithParameters.split("\\?")[0];
-
-        if (mapping.length()==0){
-            boolean auth = dbConnector.containsCookieSession(this.cookiesMap.get("session"));
-            if (auth){
-                mapping ="home";
-            }else {
-                mapping ="register";
-            }
-        }
-        return mapping;
+        String mappingWithParams = getMappingWithParams();
+        return mappingWithParams.split("\\?")[0].trim();
+    }
+    private String getMappingWithParams(){
+        return this.firstLine.substring(this.firstLine.indexOf('/') + 1, this.firstLine.indexOf('H')).replaceAll("\\s", "");
     }
 }

@@ -19,7 +19,7 @@ body{
     width: 350px;
     height:350px;
 }
-#name, #password{
+#mail, #password{
     padding-right: 5px;
     background-color: #393E46;
     color: #fff;

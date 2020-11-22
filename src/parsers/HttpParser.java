@@ -1,7 +1,5 @@
 package parsers;
 
-import database.DataConnector;
-
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,8 +16,8 @@ public class HttpParser {
     HttpParser(String httpRequest){
         this.cookiesMap = new HashMap<>();
         this.allLines = getLines(httpRequest);
-        this.httpMap = httpHashMap(httpRequest);
         this.firstLine = getLines(httpRequest)[0];
+        this.httpMap = httpHashMap(httpRequest);
     }
 
     public static HttpParser parseHttp(String httpRequest){

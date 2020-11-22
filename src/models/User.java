@@ -1,56 +1,70 @@
 package models;
 
+import jdk.nashorn.internal.ir.debug.JSONWriter;
+
 import java.io.Serializable;
 
 public class User implements Serializable {
     private String name;
-    private long id;
+    private int id;
     private String role;
+    private String password;
     private String mail;
-
-    public void setId(long id) {
-        this.id = id;
-    }
 
     public String getMail() {
         return mail;
-    }
-
-    public void setMail(String mail) {
-        this.mail = mail;
     }
 
     public String getRole() {
         return role;
     }
 
-    public void setRole(String role) {
-        this.role = role;
-    }
-
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public long getId() {
+    public int getId() {
         return id;
     }
 
-    public User(){}
-
-    public User(String name, long id,String mail,String role) {
-        this.role=role;
-        this.mail=mail;
-        this.name = name;
-        this.id = id;
-    }
+    User(){}
 
     public String toJsonFormat(){
-        return "{\"id\":"+id+",\"name\":\""+name+"\",\"role\":\""+role+"\",\"mail\":\""+mail+"\"}";
+        return String.format(
+            "{\"name\":\"%s\",\"password\":\"%s\",\"mail\":\"%s\",\"role\":\"%s\",\"id\":%d"
+            ,name,password,mail,role,id);
+    }
+    public static UserBuilder newUser(){
+        return new User().new UserBuilder();
+    }
+
+    public class UserBuilder{
+        UserBuilder(){}
+
+        public UserBuilder setName(String name){
+            User.this.name=name;
+            return this;
+        }
+        public UserBuilder setMail(String mail){
+            User.this.mail=mail;
+            return this;
+        }
+        public UserBuilder setId(int id){
+            User.this.id=id;
+            return this;
+        }
+        public UserBuilder setPassword(String password){
+            User.this.password=password;
+            return this;
+        }
+        public UserBuilder setRole(String role){
+            User.this.role=role;
+            return this;
+        }
+
+        public User build(){
+            return User.this;
+        }
     }
 
 }

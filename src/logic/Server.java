@@ -1,8 +1,9 @@
 package logic;
 
-import database.DataConnector;
-import database.mySqlConnector;
-import models.RequestQueue;
+import data.DataConnector;
+import data.MySqlConnector;
+import http.HttpRequest;
+import http.RequestQueue;
 import parsers.HttpParser;
 import parsers.JsonParser;
 
@@ -18,9 +19,9 @@ import java.util.concurrent.Executors;
 
 
 public class Server {
-    private static final String ip = "10.1.0.64";
+    private static final String ip = "192.168.43.122";
     private static final int port = 2000;
-    private static final String DBurl = "jdbc:mysql://localhost:3306/server-database?serverTimezone=UTC";
+    private static final String DBurl = "jdbc:mysql://localhost:3303/server-database?serverTimezone=UTC";
     private static final  String logPass = "admin";
 
     private static ServerSocketChannel server;
@@ -31,14 +32,14 @@ public class Server {
     public static void run() throws Exception {
         SELECTOR = Selector.open();
 
-        executorService = Executors.newFixedThreadPool(3);
+        executorService = Executors.newFixedThreadPool(12);
 
         server = ServerSocketChannel.open();
         server.bind(new InetSocketAddress(ip, port));
         server.configureBlocking(false);
         server.register(SELECTOR, SelectionKey.OP_ACCEPT);
 
-        dataConnector = new mySqlConnector(DriverManager.getConnection(DBurl, logPass, logPass));
+        dataConnector = new MySqlConnector(DriverManager.getConnection(DBurl, logPass, logPass));
         while (true) {
             SELECTOR.select();
 
@@ -65,31 +66,20 @@ public class Server {
     }
     private static void sendResponse(SelectionKey key) throws Exception {
         SocketChannel userChannel = (SocketChannel) key.channel();
-        RequestQueue request = RequestQueue.getFirstOnChannel(userChannel);
-        String method = request.getMethod();
-        String mapping = request.getMapping();
+        HttpRequest request = RequestQueue.getFirstOnChannel(userChannel);
 
-        if (method.equals("GET")) {
-            sendibleContent someContent = sendibleContent.getContentOfMapping(mapping);
-            try {
-                userChannel.write(someContent.doGet(request));
-            }catch (IOException e) {
-                key.cancel();
-            }
-
-        }else if(method.equals("POST")){
-            sendibleContent someContent = sendibleContent.getContentOfMapping(mapping);
-            try {
-                userChannel.write(someContent.doPost(request));
-            }catch (IOException e) {
-                key.cancel();
-            }
+        try {
+            userChannel.write(SendibleContent.doResponse(request));
+        }catch (IOException e){
+            key.cancel();
+            userChannel.close();
         }
+
         key.cancel();
         userChannel.close();
     }
 
-    private static void readRequest(SelectionKey key) throws IOException, SQLException {
+    private static void readRequest(SelectionKey key) throws Exception {
         SocketChannel userChannel = (SocketChannel) key.channel();
         int checkLength = -1;
         ByteBuffer buffer = null;
@@ -98,7 +88,7 @@ public class Server {
             do {
                 buffer = ByteBuffer.allocate(1024);
                 checkLength = userChannel.read(buffer);
-                httpRequest.append(new String(buffer.array()));
+                httpRequest.append(new String(buffer.array()), 0, checkLength);
             }while (buffer.capacity()==buffer.position());
             buffer.clear(); } catch (Exception ignored){}
         if (checkLength==-1){
@@ -118,7 +108,7 @@ public class Server {
             jsonMap.putAll(jsonParser.jsonHashMap());
         }
 
-        RequestQueue builtRequest = RequestQueue.newRequest()
+        HttpRequest builtRequest = HttpRequest.newRequest()
             .setDataConnector(dataConnector)
             .setParameters(requestParameters)
             .setChannel(userChannel)

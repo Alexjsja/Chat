@@ -1,38 +1,70 @@
 package models;
 
+import jdk.nashorn.internal.ir.debug.JSONWriter;
+
 import java.io.Serializable;
 
 public class User implements Serializable {
     private String name;
-    private long id;
+    private int id;
+    private String role;
     private String password;
+    private String mail;
+
+    public String getMail() {
+        return mail;
+    }
+
+    public String getRole() {
+        return role;
+    }
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public long getId() {
+    public int getId() {
         return id;
     }
 
-    public String getPassword() {
-        return password;
+    User(){}
+
+    public String toJsonFormat(){
+        return String.format(
+            "{\"name\":\"%s\",\"password\":\"%s\",\"mail\":\"%s\",\"role\":\"%s\",\"id\":%d"
+            ,name,password,mail,role,id);
+    }
+    public static UserBuilder newUser(){
+        return new User().new UserBuilder();
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public class UserBuilder{
+        UserBuilder(){}
+
+        public UserBuilder setName(String name){
+            User.this.name=name;
+            return this;
+        }
+        public UserBuilder setMail(String mail){
+            User.this.mail=mail;
+            return this;
+        }
+        public UserBuilder setId(int id){
+            User.this.id=id;
+            return this;
+        }
+        public UserBuilder setPassword(String password){
+            User.this.password=password;
+            return this;
+        }
+        public UserBuilder setRole(String role){
+            User.this.role=role;
+            return this;
+        }
+
+        public User build(){
+            return User.this;
+        }
     }
 
-    public User(String name, long id, String password) {
-        this.name = name;
-        this.id = id;
-        this.password = password;
-    }
-    public String toString(){
-        return "name:"+name+"\npassword:"+password+"\nID:"+id;
-    }
 }

@@ -1,43 +1,85 @@
 package parsers;
 
-import factories.ramUserFactory;
-import logic.pageLogic;
-
+import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Map;
 
 public class HttpParser {
 
-    private static HashMap<String,String> httpLines;
-    private static String[] allLines;
-    private static String firstLine;
-    private static String mapping;
-    private static String method;
+    private HashMap<String,String> httpMap;
+    private HashMap<String,String> cookiesMap;
+    private String[] allLines;
+    private String firstLine;
+    private String method;
 
 
-    public static void parseHttp(String httpRequest){
-        httpLines = httpHashMap(httpRequest);
-        firstLine = getLines(httpRequest)[0];
-        allLines = getLines(httpRequest);
+    HttpParser(String httpRequest){
+        this.cookiesMap = new HashMap<>();
+        this.allLines = getLines(httpRequest);
+        this.firstLine = getLines(httpRequest)[0];
+        this.httpMap = httpHashMap(httpRequest);
     }
 
-    private static HashMap<String,String> httpHashMap(String httpRequest){
+    public static HttpParser parseHttp(String httpRequest){
+        if (httpRequest==null||httpRequest.length()==0)
+                throw new IllegalArgumentException();
+        return new HttpParser(httpRequest);
+    }
+    public Map<String,String> getParameters() throws SQLException {
+        Map<String,String> parameters = new HashMap<>();
+        String mapping = getMappingWithParams();
+        String[] mappingAndParameters = mapping.split("\\?");
+        if (mappingAndParameters.length>1){
+            String[] resources = mappingAndParameters[1].split("&");
+            for (String resource : resources) {
+                String[] key_value = resource.split("=");
+                String key = null;
+                String value = null;
+                if(key_value.length==2){
+                    if (key_value[0].length()!=0||key_value[1].length()!=0){
+                        key = key_value[0].trim();
+                        value = key_value[1].trim();
+                    }
+                }
+                parameters.put(key, value);
+            }
+        }
+        return parameters;
+    }
+
+    public HashMap<String,String> parseCookie(String str){
+        String[] cookies = str.split(";");
+        HashMap<String,String> cookieKeyValueMap = new HashMap<>();
+        for (int i = 0; i < cookies.length; i++) {
+            String[] cookieKeyValue = cookies[i].trim().split("=",2);
+            if (cookieKeyValue[1].length()==0)continue;
+            cookieKeyValueMap.put(cookieKeyValue[0].trim(),cookieKeyValue[1].trim());
+        }
+        return cookieKeyValueMap;
+    }
+
+    private HashMap<String,String> httpHashMap(String httpRequest){
         String[] lines = getLines(httpRequest);
         HashMap<String,String> hm = new HashMap<>();
-        for (int i =1 ;i<lines.length;i++){
+        for (int i = 1 ;i<lines.length;i++){
             if(lines[i].equals("\r")||lines[i].length()==0){
                 break;
             }
-            String[] kv = lines[i].split(":",2);
-            hm.put(kv[0].trim(),kv[1].trim());
+            String[] httpKeyValue = lines[i].split(":",2);
+            if(httpKeyValue[0].equals("Cookie")){
+                this.cookiesMap.putAll(parseCookie(httpKeyValue[1].trim()));
+            }else{
+                hm.put(httpKeyValue[0].trim(),httpKeyValue[1].trim());
+            }
         }
         return hm;
     }
-    private static String[] getLines(String httpRequest){
+    private String[] getLines(String httpRequest){
         return httpRequest.split("\n");
     }
 
-    public static String getBody(){
-        String[] str = allLines;
+    public String getBody(){
+        String[] str = this.allLines;
         StringBuilder body = new StringBuilder();
         boolean startBody=false;
         for (String s : str) {
@@ -50,44 +92,27 @@ public class HttpParser {
         }
         return body.toString();
     }
-    public static String getMethod(){
-        method = firstLine.substring(0,firstLine.indexOf('/')).replaceAll("\\s","");
-        return method;
+    public String getMethod(){
+        this.method = this.firstLine.substring(0,this.firstLine.indexOf('/')).replaceAll("\\s","");
+        return this.method;
     }
 
-    public static boolean methodIsPost(){
-        return method.equals("POST");
+    public boolean methodIsPost(){
+        return this.method.equals("POST");
     }
-    public static boolean methodIsGet(){
-        return method.equals("GET");
+    public boolean methodIsGet(){
+        return this.method.equals("GET");
     }
-    public static String getMapping(){
-        mapping = firstLine.substring(firstLine.indexOf('/')+1,firstLine.indexOf('H')).replaceAll("\\s","");
-        if (methodIsPost()) {
-            mapping = mapping.substring(mapping.indexOf('/') + 1);
-        }
-        if (mapping.length()==0){
-            if (ramUserFactory.containsUser(getCookieValue())){
-                mapping="home";
-            }else {
-                mapping="register";
-            }
-        }
-        if(pageLogic.authPages.toString().contains(mapping)&&!ramUserFactory.containsUser(getCookieValue())){
-            mapping="register";
-        }
-        try {
-            pageLogic.valueOf(mapping);
-        } catch (IllegalArgumentException e) {
-            mapping = "page404";
-        }
-        return mapping;
+    public HashMap<String,String> getCookiesMap(){
+        return this.cookiesMap;
     }
-    public static String getCookieValue() {
-        String fullCookie = httpLines.get("Cookie");
-        if (fullCookie != null) {
-            return fullCookie.substring(fullCookie.indexOf('=')+1);
-        }
-        return "o";
+
+
+    public String getMapping() throws SQLException {
+        String mappingWithParams = getMappingWithParams();
+        return mappingWithParams.split("\\?")[0].trim();
+    }
+    private String getMappingWithParams(){
+        return this.firstLine.substring(this.firstLine.indexOf('/') + 1, this.firstLine.indexOf('H')).replaceAll("\\s", "");
     }
 }

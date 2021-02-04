@@ -1,144 +1,124 @@
 package logic;
 
-import factories.ramUserFactory;
+import data.DataConnector;
+import data.MySqlConnector;
+import http.HttpRequest;
+import http.RequestQueue;
 import parsers.HttpParser;
 import parsers.JsonParser;
-import models.Message;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.channels.SelectionKey;
+import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.Selector;
 import java.nio.ByteBuffer;
-import java.time.LocalTime;
+import java.nio.channels.*;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.*;
-
-import static factories.jsonFactory.jsonInBytes;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class Server {
-    private static Selector SELECTOR;
-    private static ServerSocketChannel server;
     private static final String ip = "192.168.43.122";
     private static final int port = 2000;
+    private static final String DBurl = "jdbc:mysql://localhost:3303/server-database?serverTimezone=UTC";
+    private static final  String logPass = "admin";
 
-    private static Map<SocketChannel,HashMap<String,String>> channelHeader;
-    private static Map<SocketChannel,String> channelBody;
-    private static Map<SocketChannel,String> authChanel;
-
-    private static ramUserFactory userFactory;
+    private static ServerSocketChannel server;
+    private static Selector SELECTOR;
+    private static ExecutorService executorService;
+    private static DataConnector dataConnector;
 
     public static void run() throws Exception {
         SELECTOR = Selector.open();
+
+        executorService = Executors.newFixedThreadPool(12);
 
         server = ServerSocketChannel.open();
         server.bind(new InetSocketAddress(ip, port));
         server.configureBlocking(false);
         server.register(SELECTOR, SelectionKey.OP_ACCEPT);
 
-        channelHeader = new ConcurrentHashMap<>();
-        channelBody = new ConcurrentHashMap<>();
-        authChanel = new ConcurrentHashMap<>();
-        userFactory = ramUserFactory.startFactory();
-
+        dataConnector = new MySqlConnector(DriverManager.getConnection(DBurl, logPass, logPass));
         while (true) {
             SELECTOR.select();
 
             Set<SelectionKey> keySet = SELECTOR.selectedKeys();
+
             Iterator<SelectionKey> keysIterator = keySet.iterator();
 
             while (keysIterator.hasNext()) {
-                SelectionKey key = (SelectionKey) keysIterator.next();
-                keysIterator.remove();
+                SelectionKey key = keysIterator.next();
 
                 if (key.isAcceptable()) {
-                    ServerSocketChannel ssc= (ServerSocketChannel) key.channel();
-                    SocketChannel user = ssc.accept();
+                    ServerSocketChannel ServerSocketChannel= (ServerSocketChannel) key.channel();
+                    SocketChannel user = ServerSocketChannel.accept();
                     user.configureBlocking(false);
                     user.register(SELECTOR, SelectionKey.OP_READ);
+                }else if (key.isReadable()) {
+                    readRequest(key);
+                }else if (key.isWritable()) {
+                    sendResponse(key);
                 }
-
-                if (key.isReadable()) {
-                    SocketChannel userChannel = (SocketChannel) key.channel();
-                    userChannel.configureBlocking(false);
-                    ByteBuffer buffer = ByteBuffer.allocate(1024);
-
-                    int checkLength = userChannel.read(buffer);
-                    buffer.clear();
-                    if (checkLength == -1) {
-                        continue;
-                    }
-
-                    byte[] byteRequest = new byte[checkLength];
-                    System.arraycopy(buffer.array(), 0, byteRequest, 0, checkLength);
-                    String httpRequest = new String(byteRequest);
-
-                    HttpParser.parseHttp(httpRequest);
-
-                    String method = HttpParser.getMethod();
-                    String mapping = HttpParser.getMapping();
-
-                    HashMap<String,String> hm = new HashMap<>();
-                    hm.put(method,mapping);
-
-                    String cookieUser = HttpParser.getCookieValue();
-
-                    if(method.equals("POST"))
-                        channelBody.put(userChannel, HttpParser.getBody());
-                    if (ramUserFactory.containsUser(cookieUser))
-                        authChanel.put(userChannel,cookieUser);
-
-                    channelHeader.put(userChannel,hm);
-
-                    userChannel.register(SELECTOR,SelectionKey.OP_WRITE);
-                }
-                if (key.isWritable()) {
-                    SocketChannel userChannel = (SocketChannel) key.channel();
-
-
-                    if (channelHeader.containsKey(userChannel)) {
-                        HashMap<String,String> method_mapping = channelHeader.get(userChannel);
-                        String project = System.getProperty("user.dir");
-                        if (method_mapping.containsKey("GET")) {
-
-                            pageLogic content = pageLogic.valueOf(method_mapping.get("GET"));
-                            userChannel.write(content.getContentInBytes());
-
-                        }else if(method_mapping.containsKey("POST")){
-                            String postMapping = method_mapping.get("POST");
-                            HashMap<String,String> jsonPost = JsonParser.jsonHashMap(channelBody.get(userChannel));
-
-                            switch (postMapping){
-                                case "login":
-                                    boolean loginSuccessful = ramUserFactory.userLogin(jsonPost.get("name"),jsonPost.get("password"));
-                                    String logResponse = "{\"loged\":\""+loginSuccessful+"\"}";
-                                    userChannel.write(jsonInBytes(logResponse,jsonPost.get("name")));
-                                    break;
-                                case "register":
-                                    boolean registerSuccessful = ramUserFactory.regUser(jsonPost.get("name"),jsonPost.get("password"));
-                                    String regResponse = "{\"reg\":\""+registerSuccessful+"\"}";
-                                    userChannel.write(jsonInBytes(regResponse,jsonPost.get("name")));
-                                    break;
-                                case "home":
-                                        String name = authChanel.get(userChannel);
-                                        Message msg = new Message(jsonPost.get("text"),name, LocalTime.now());
-                                        userChannel.write(jsonInBytes(msg.toJsonFormat()));
-                                    break;
-                                default:
-                                    break;
-                            }
-                        }
-                        channelBody.remove(userChannel);
-                        channelHeader.remove(userChannel);
-                        authChanel.remove(userChannel);
-                    }
-                    userChannel.register(SELECTOR, SelectionKey.OP_READ);
-                }
+                keysIterator.remove();
             }
         }
     }
+    private static void sendResponse(SelectionKey key) throws Exception {
+        SocketChannel userChannel = (SocketChannel) key.channel();
+        HttpRequest request = RequestQueue.getFirstOnChannel(userChannel);
 
+        try {
+            userChannel.write(SendibleContent.doResponse(request));
+        }catch (IOException e){
+            key.cancel();
+            userChannel.close();
+        }
+
+        key.cancel();
+        userChannel.close();
+    }
+
+    private static void readRequest(SelectionKey key) throws Exception {
+        SocketChannel userChannel = (SocketChannel) key.channel();
+        int checkLength = -1;
+        ByteBuffer buffer = null;
+        StringBuilder httpRequest = new StringBuilder();
+        try {
+            do {
+                buffer = ByteBuffer.allocate(1024);
+                checkLength = userChannel.read(buffer);
+                httpRequest.append(new String(buffer.array()), 0, checkLength);
+            }while (buffer.capacity()==buffer.position());
+            buffer.clear(); } catch (Exception ignored){}
+        if (checkLength==-1){
+            key.cancel();
+            userChannel.close();
+            return;
+        }
+        HttpParser httpParser = HttpParser.parseHttp(httpRequest.toString());
+
+        Map<String,String> cookies = httpParser.getCookiesMap();
+        String method = httpParser.getMethod();
+        String mapping = httpParser.getMapping();
+        Map<String,String> jsonMap = new HashMap<>();
+        Map<String,String> requestParameters = httpParser.getParameters();
+        if(httpParser.methodIsPost()) {
+            JsonParser jsonParser = new JsonParser(httpParser.getBody());
+            jsonMap.putAll(jsonParser.jsonHashMap());
+        }
+
+        HttpRequest builtRequest = HttpRequest.newRequest()
+            .setDataConnector(dataConnector)
+            .setParameters(requestParameters)
+            .setChannel(userChannel)
+            .setCookies(cookies)
+            .setMapping(mapping)
+            .setMethod(method)
+            .setBody(jsonMap)
+            .build();
+        RequestQueue.put(builtRequest);
+        userChannel.register(SELECTOR,SelectionKey.OP_WRITE);
+    }
 
 }

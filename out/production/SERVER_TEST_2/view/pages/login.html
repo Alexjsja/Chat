@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <script src="login.js"></script>
+    <link rel="icon" href="data:,">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&family=Roboto+Condensed&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+<div class="alert" id = 'alert'>
+    <span class="closebtn" onclick = 'check()'>×</span>
+    <strong>Error ! </strong>the password is more than 32 characters!
+</div>
+<div class="scrolled">
+    <div class = 'block'>
+        <h1>Login</h1>
+        <span><p class = 'fix'><i class="fas fa-address-book"></i></p><input type="text" id='mail' placeholder = 'mail'></span>
+        <br/>
+        <span><p class = 'fix'><i class="fas fa-lock"></i></p><input type="password" id="password" placeholder = 'password'></span>
+        <button onclick = 'animation()' class = 'btn'>Login</button>
+        <a href="/register">register</a>
+    </div>
+    <i class="bg fas fa-theater-masks" id = 'icon'></i>
+</div>
+<script src="https://kit.fontawesome.com/c19e24bdd1.js" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+    let icon = document.getElementById('icon');
+    function animation() {
+        icon.style.fontSize =  250+'px';
+        icon.style.top = 10+'px';
+        icon.style.right = '62%';
+        setTimeout(send,500)
+    }
+    function closeErr(){
+        notSuccess('-320px','0px')
+    }
+
+    function notSuccess(a,b) {
+        if($('.alert').hasClass('active')){
+            $('.alert').removeClass('active');
+            $('.alert').animate({
+                right: a
+            }, 200);
+            $('body').animate({
+                right: b
+            }, 200);
+        } else {
+            $('.alert').addClass('active');
+            $('.alert').animate({
+                right: b
+            }, 200);
+            $('body').animate({
+                right: a
+            }, 200);
+        }
+    }
+
+</script>
+</body>
+</html>
